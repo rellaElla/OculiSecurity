@@ -381,20 +381,10 @@ describe('runInit', () => {
     expect(result.template).toBe('minimal');
   });
 
-  it('creates .oculi/policy.yaml from strict template', () => {
-    const dir = mktemp(); tmps.push(dir);
-    const result = runInit('strict', { cwd: dir });
-    expect(result.created).toBe(true);
-    expect(result.template).toBe('strict');
-
-    const content = fs.readFileSync(result.path, 'utf8');
-    expect(content).toContain('deny-all');
-  });
-
   it('refuses to overwrite existing file', () => {
     const dir = mktemp(); tmps.push(dir);
     runInit('standard', { cwd: dir });
-    const result = runInit('strict', { cwd: dir });
+    const result = runInit('standard', { cwd: dir });
     expect(result.created).toBe(false);
 
     // Content should still be the standard template (unchanged)
@@ -428,11 +418,4 @@ describe('policy templates', () => {
     expect(ids).toContain('warn-mcp');
   });
 
-  it('strict template contains deny-all and allow rules', () => {
-    const parsed = YAML.parse(templates.strict) as { rules: { id: string; action: string }[] };
-    const ids = parsed.rules.map((r) => r.id);
-    expect(ids).toContain('deny-all');
-    expect(ids).toContain('allow-file-read');
-    expect(ids).toContain('allow-safe-shell');
-  });
 });

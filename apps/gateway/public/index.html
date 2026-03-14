@@ -4,32 +4,47 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Oculi Security Gateway — Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="/admin/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg-body: #0f1117;
-      --bg-sidebar: #14161e;
-      --bg-card: #1a1f2e;
-      --border: #2d3748;
+      --bg-body: #0a0a0f;
+      --bg-secondary: #0f1117;
+      --bg-sidebar: #0f1117;
+      --bg-card: #14161e;
+      --bg-elevated: #1a1f2e;
+      --border: #1e2330;
+      --border-light: #2d3748;
       --text-primary: #e2e8f0;
       --text-secondary: #a0aec0;
       --text-muted: #718096;
       --accent-blue: #63b3ed;
+      --accent-blue-bright: #4da3e0;
       --accent-green: #48bb78;
       --accent-red: #fc8181;
       --accent-teal: #81e6d9;
+      --accent-purple: #b794f4;
+      --accent-yellow: #f6e05e;
       --sidebar-width: 220px;
       --topbar-height: 56px;
     }
 
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg-body);
       color: var(--text-primary);
       min-height: 100vh;
       display: flex;
+    }
+
+    code, pre, .mono, .kql-input, .search-result-key, .search-result-val,
+    .stat-value, .policy-code, .test-input textarea, .test-output pre {
+      font-family: 'JetBrains Mono', monospace;
     }
 
     /* ── Sidebar ── */
@@ -63,7 +78,7 @@
       left: calc(100% + 10px);
       top: 50%;
       transform: translateY(-50%);
-      background: #1e2433;
+      background: var(--bg-card);
       color: var(--text-primary);
       padding: 5px 11px;
       border-radius: 6px;
@@ -88,12 +103,13 @@
     }
 
     .sidebar-brand-icon {
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       border: 2px solid var(--accent-blue);
       border-radius: 50%;
-      margin-top: 4px;
+      margin-top: 2px;
       flex-shrink: 0;
+      background: rgba(99, 179, 237, 0.1);
     }
 
     .sidebar-brand-text {
@@ -578,6 +594,185 @@
     .copy-btn:hover {
       background: rgba(255,255,255,0.08);
       color: var(--text-primary);
+    }
+
+    /* ── Visual Rules ── */
+    .rules-tab-bar {
+      display: flex;
+      gap: 0;
+      padding: 16px 24px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+    .rules-tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .rules-tab:hover { color: var(--text-primary); }
+    .rules-tab.active {
+      color: var(--accent-blue);
+      border-bottom-color: var(--accent-blue);
+    }
+    .rules-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 24px 24px 16px;
+    }
+    .rules-header-title { font-size: 1.1rem; font-weight: 700; }
+    .rules-header-subtitle { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+    .rules-table-wrap {
+      padding: 0 24px 24px;
+    }
+    .rules-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .rules-table th {
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+    }
+    .rules-table td {
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border);
+    }
+    .rules-table tr:last-child td { border-bottom: none; }
+    .rules-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .rule-id-cell {
+      font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .rule-pattern-cell {
+      font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+    .rule-action-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .rule-action-badge.deny {
+      background: rgba(252,129,129,0.15);
+      color: var(--accent-red);
+      border: 1px solid rgba(252,129,129,0.3);
+    }
+    .rule-action-badge.warn {
+      background: rgba(246,224,94,0.15);
+      color: var(--accent-yellow);
+      border: 1px solid rgba(246,224,94,0.3);
+    }
+    .rule-action-badge.allow {
+      background: rgba(72,187,120,0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(72,187,120,0.3);
+    }
+    .rule-actions-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rule-action-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .rule-action-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.06);
+    }
+    .rule-action-btn.delete:hover {
+      color: var(--accent-red);
+      background: rgba(252,129,129,0.1);
+    }
+    .rule-desc-cell {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .rule-form-group {
+      margin-bottom: 14px;
+    }
+    .rule-form-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .rule-form-input {
+      width: 100%;
+      background: var(--bg-body);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+      box-sizing: border-box;
+    }
+    .rule-form-input:focus { border-color: rgba(99,179,237,0.5); }
+    .rule-form-input.mono {
+      font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.82rem;
+    }
+    .rule-form-select {
+      width: 100%;
+      background: var(--bg-body);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      padding: 9px 12px;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+      box-sizing: border-box;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23718096'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    .rule-form-select option { background: #1a1f2e; }
+    .rules-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 0.88rem;
     }
 
     /* ── Policies page ── */
@@ -1441,37 +1636,37 @@
     </div>
     <ul class="sidebar-nav">
       <li>
-        <a href="#" data-page="overview" class="active" data-tooltip="Overview">
+        <a href="/admin/overview" data-page="overview" class="active" data-tooltip="Overview">
           <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           <span class="nav-label">Overview</span>
         </a>
       </li>
       <li>
-        <a href="#" data-page="search" data-tooltip="Search">
+        <a href="/admin/search" data-page="search" data-tooltip="Search">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <span class="nav-label">Search</span>
         </a>
       </li>
       <li>
-        <a href="#" data-page="policies" data-tooltip="Policies">
+        <a href="/admin/policies" data-page="policies" data-tooltip="Policies">
           <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           <span class="nav-label">Policies</span>
         </a>
       </li>
       <li>
-        <a href="#" data-page="actors" data-tooltip="Actors & Roles">
+        <a href="/admin/actors" data-page="actors" data-tooltip="Actors & Roles">
           <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span class="nav-label">Actors &amp; Roles</span>
         </a>
       </li>
       <li>
-        <a href="#" data-page="integrations" data-tooltip="Integrations">
+        <a href="/admin/integrations" data-page="integrations" data-tooltip="Integrations">
           <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1" fill="currentColor" stroke="none"/><line x1="14" y1="6" x2="20" y2="6"/><line x1="14" y1="18" x2="20" y2="18"/></svg>
           <span class="nav-label">Integrations</span>
         </a>
       </li>
       <li>
-        <a href="#" data-page="settings" data-tooltip="Settings">
+        <a href="/admin/settings" data-page="settings" data-tooltip="Settings">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span class="nav-label">Settings</span>
         </a>
@@ -1671,68 +1866,104 @@
 
       <!-- ════════════ Policies Page ════════════ -->
       <div id="page-policies" class="page">
-        <div class="policies-layout">
-          <!-- Left Panel -->
-          <div class="policies-left">
-            <div class="policies-left-header">
-              <div>
-                <div class="policies-left-title">Policy Editor</div>
-                <div class="policies-left-subtitle">Manage access control policies and test configurations</div>
-              </div>
-              <button class="btn-new-policy" onclick="createNewPolicy()">+ New Policy</button>
+        <div class="rules-tab-bar">
+          <button class="rules-tab active" data-tab="visual" onclick="switchPolicyTab('visual')">Visual Rules</button>
+          <button class="rules-tab" data-tab="advanced" onclick="switchPolicyTab('advanced')">Advanced (Rego)</button>
+        </div>
+
+        <!-- Visual Rules View -->
+        <div id="visual-rules-view">
+          <div class="rules-header">
+            <div>
+              <div class="rules-header-title">Security Rules</div>
+              <div class="rules-header-subtitle">Default-allow with deny/warn rules for dangerous patterns</div>
             </div>
-            <div class="policy-cards" id="policy-cards-list">
-              <!-- Rendered by JS -->
-            </div>
+            <button class="btn-new-policy" onclick="openRuleForm()">+ New Rule</button>
           </div>
+          <div class="rules-table-wrap">
+            <table class="rules-table" id="rules-table">
+              <thead>
+                <tr>
+                  <th>Rule ID</th>
+                  <th>Tool</th>
+                  <th>Pattern</th>
+                  <th>Action</th>
+                  <th>Description</th>
+                  <th>Enabled</th>
+                  <th style="width:80px"></th>
+                </tr>
+              </thead>
+              <tbody id="rules-table-body">
+              </tbody>
+            </table>
+            <div class="rules-empty" id="rules-empty" style="display:none;">No rules yet. Click "+ New Rule" to create one.</div>
+          </div>
+        </div>
 
-          <!-- Right Panel -->
-          <div class="policies-right">
-            <div class="policies-right-empty" id="policy-empty-state">
-              Select a policy from the left to view and edit
+        <!-- Advanced Rego View -->
+        <div id="rego-editor-view" style="display:none;">
+          <div class="policies-layout">
+            <!-- Left Panel -->
+            <div class="policies-left">
+              <div class="policies-left-header">
+                <div>
+                  <div class="policies-left-title">Policy Editor</div>
+                  <div class="policies-left-subtitle">Manage access control policies and test configurations</div>
+                </div>
+                <button class="btn-new-policy" onclick="createNewPolicy()">+ New Policy</button>
+              </div>
+              <div class="policy-cards" id="policy-cards-list">
+              </div>
             </div>
-            <div id="policy-detail" style="display:none;">
-              <div class="policy-detail-header">
-                <h2 class="policy-detail-name" id="policy-detail-name"></h2>
-                <div class="policy-detail-actions">
-                  <button class="btn-policy-action" onclick="editPolicyToggle()" id="btn-edit-policy" title="Edit">
-                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
-                  </button>
-                  <button class="btn-policy-action" onclick="duplicatePolicy()" title="Duplicate">
-                    <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    Duplicate
-                  </button>
-                  <button class="btn-policy-action" onclick="showVersions()" title="Versions">
-                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    Versions
-                  </button>
-                  <button class="btn-save-publish" onclick="savePolicy()">Save &amp; Publish</button>
-                </div>
-              </div>
 
-              <div class="policy-editor-area">
-                <textarea class="policy-rego-textarea" id="policy-rego-editor" spellcheck="false" readonly></textarea>
+            <!-- Right Panel -->
+            <div class="policies-right">
+              <div class="policies-right-empty" id="policy-empty-state">
+                Select a policy from the left to view and edit
               </div>
-
-              <div class="policy-test-section">
-                <div class="policy-test-title">Test Policy</div>
-                <div class="policy-test-grid">
-                  <div>
-                    <div class="policy-test-label">Test Input</div>
-                    <textarea class="policy-test-input" id="policy-test-input" spellcheck="false"></textarea>
-                  </div>
-                  <div>
-                    <div class="policy-test-label">Decision Output</div>
-                    <div class="policy-test-output" id="policy-test-output">Run test to see result</div>
+              <div id="policy-detail" style="display:none;">
+                <div class="policy-detail-header">
+                  <h2 class="policy-detail-name" id="policy-detail-name"></h2>
+                  <div class="policy-detail-actions">
+                    <button class="btn-policy-action" onclick="editPolicyToggle()" id="btn-edit-policy" title="Edit">
+                      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Edit
+                    </button>
+                    <button class="btn-policy-action" onclick="duplicatePolicy()" title="Duplicate">
+                      <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      Duplicate
+                    </button>
+                    <button class="btn-policy-action" onclick="showVersions()" title="Versions">
+                      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      Versions
+                    </button>
+                    <button class="btn-save-publish" onclick="savePolicy()">Save &amp; Publish</button>
                   </div>
                 </div>
-                <div class="policy-test-buttons">
-                  <button class="btn-run-test" onclick="runPolicyTest()">
-                    <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    Run Test
-                  </button>
-                  <button class="btn-load-sample" onclick="loadSampleInput()">Load Sample</button>
+
+                <div class="policy-editor-area">
+                  <textarea class="policy-rego-textarea" id="policy-rego-editor" spellcheck="false" readonly></textarea>
+                </div>
+
+                <div class="policy-test-section">
+                  <div class="policy-test-title">Test Policy</div>
+                  <div class="policy-test-grid">
+                    <div>
+                      <div class="policy-test-label">Test Input</div>
+                      <textarea class="policy-test-input" id="policy-test-input" spellcheck="false"></textarea>
+                    </div>
+                    <div>
+                      <div class="policy-test-label">Decision Output</div>
+                      <div class="policy-test-output" id="policy-test-output">Run test to see result</div>
+                    </div>
+                  </div>
+                  <div class="policy-test-buttons">
+                    <button class="btn-run-test" onclick="runPolicyTest()">
+                      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      Run Test
+                    </button>
+                    <button class="btn-load-sample" onclick="loadSampleInput()">Load Sample</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1998,6 +2229,63 @@
     <div class="cdp-body" id="cdp-body"></div>
   </div>
 
+  <!-- ── Rule Form Panel ── -->
+  <div class="call-details-overlay" id="rule-form-overlay" onclick="closeRuleForm()"></div>
+  <div class="call-details-panel" id="rule-form-panel">
+    <div class="cdp-header">
+      <span class="cdp-title" id="rule-form-title">New Rule</span>
+      <button class="cdp-close" onclick="closeRuleForm()" title="Close">&#10005;</button>
+    </div>
+    <div class="cdp-body">
+      <div class="rule-form-group">
+        <label class="rule-form-label">Rule ID</label>
+        <input class="rule-form-input mono" id="rule-form-id" placeholder="e.g. no-rm-rf" />
+      </div>
+      <div class="rule-form-group">
+        <label class="rule-form-label">Tool (exact match)</label>
+        <select class="rule-form-select" id="rule-form-tool">
+          <option value="">Any tool</option>
+          <option value="shell">shell</option>
+          <option value="file_read">file_read</option>
+          <option value="file_edit">file_edit</option>
+          <option value="mcp_call">mcp_call</option>
+        </select>
+      </div>
+      <div class="rule-form-group">
+        <label class="rule-form-label">Command Pattern (regex)</label>
+        <input class="rule-form-input mono" id="rule-form-command" placeholder='e.g. rm\s+-rf' />
+      </div>
+      <div class="rule-form-group">
+        <label class="rule-form-label">File Pattern (regex)</label>
+        <input class="rule-form-input mono" id="rule-form-file" placeholder='e.g. \.env' />
+      </div>
+      <div class="rule-form-group">
+        <label class="rule-form-label">MCP Server (exact match)</label>
+        <input class="rule-form-input" id="rule-form-mcp" placeholder="e.g. filesystem-server" />
+      </div>
+      <div class="rule-form-group">
+        <label class="rule-form-label">Action</label>
+        <select class="rule-form-select" id="rule-form-action">
+          <option value="deny">Deny</option>
+          <option value="warn">Warn</option>
+          <option value="allow">Allow</option>
+        </select>
+      </div>
+      <div class="rule-form-group">
+        <label class="rule-form-label">Description</label>
+        <input class="rule-form-input" id="rule-form-desc" placeholder="What does this rule do?" />
+      </div>
+      <div class="rule-form-group">
+        <label class="rule-form-label">Priority</label>
+        <input class="rule-form-input" id="rule-form-priority" type="number" placeholder="0" value="0" />
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button class="btn-new-policy" onclick="saveRule()" id="rule-form-save">Save Rule</button>
+        <button class="btn-policy-action" onclick="closeRuleForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ── API ──
     const API_BASE = window.location.origin;
@@ -2111,12 +2399,12 @@
       try {
         const [summary, topTools, topDenied, topActors, decisions, timeseries] =
           await Promise.all([
-            fetchJSON('/admin/stats/summary?hours=24'),
-            fetchJSON('/admin/stats/top-tools?limit=5'),
-            fetchJSON('/admin/stats/top-denied?limit=5'),
-            fetchJSON('/admin/stats/top-actors?limit=5'),
-            fetchJSON('/admin/stats/decisions'),
-            fetchJSON('/admin/stats/timeseries?hours=1&bucket=5'),
+            fetchJSON('/api/admin/stats/summary?hours=24'),
+            fetchJSON('/api/admin/stats/top-tools?limit=5'),
+            fetchJSON('/api/admin/stats/top-denied?limit=5'),
+            fetchJSON('/api/admin/stats/top-actors?limit=5'),
+            fetchJSON('/api/admin/stats/decisions'),
+            fetchJSON('/api/admin/stats/timeseries?hours=1&bucket=5'),
           ]);
 
         // Stat cards
@@ -2192,7 +2480,7 @@
 
     async function loadPolicies() {
       try {
-        var data = await fetchJSON('/admin/policies');
+        var data = await fetchJSON('/api/admin/policies');
         policiesList = data.policies;
         renderPolicyCards();
         if (policiesList.length > 0 && !selectedPolicyId) {
@@ -2280,7 +2568,7 @@
       if (!policy) return;
       var rego = document.getElementById('policy-rego-editor').value;
       try {
-        var res = await fetch(API_BASE + '/admin/policies/' + selectedPolicyId, {
+        var res = await fetch(API_BASE + '/api/admin/policies/' + selectedPolicyId, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ rego: rego, updatedBy: policy.updatedBy }),
@@ -2299,7 +2587,7 @@
       var name = prompt('Policy name:');
       if (!name) return;
       try {
-        var res = await fetch(API_BASE + '/admin/policies', {
+        var res = await fetch(API_BASE + '/api/admin/policies', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2322,7 +2610,7 @@
     async function duplicatePolicy() {
       if (!selectedPolicyId) return;
       try {
-        var res = await fetch(API_BASE + '/admin/policies/' + selectedPolicyId + '/duplicate', {
+        var res = await fetch(API_BASE + '/api/admin/policies/' + selectedPolicyId + '/duplicate', {
           method: 'POST',
         });
         if (!res.ok) throw new Error('Duplicate failed: ' + res.status);
@@ -2347,7 +2635,7 @@
         var inputJson = JSON.parse(inputEl.value);
         outputEl.textContent = 'Evaluating...';
         outputEl.style.color = 'var(--text-muted)';
-        var res = await fetch(API_BASE + '/admin/policies/test', {
+        var res = await fetch(API_BASE + '/api/admin/policies/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ input: inputJson }),
@@ -2379,6 +2667,185 @@
         sessionId: 'test-session-1'
       };
       document.getElementById('policy-test-input').value = JSON.stringify(sample, null, 2);
+    }
+
+    // ── Visual Rules ──
+    var visualRulesList = [];
+    var editingRuleDbId = null; // null = creating new, number = editing existing
+    var activePolicyTab = 'visual';
+
+    function switchPolicyTab(tab) {
+      activePolicyTab = tab;
+      document.querySelectorAll('.rules-tab').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+      });
+      document.getElementById('visual-rules-view').style.display = tab === 'visual' ? '' : 'none';
+      document.getElementById('rego-editor-view').style.display = tab === 'advanced' ? '' : 'none';
+      if (tab === 'visual') loadVisualRules();
+      if (tab === 'advanced') loadPolicies();
+    }
+
+    async function loadVisualRules() {
+      try {
+        var data = await fetchJSON('/api/admin/rules');
+        visualRulesList = data.rules;
+        renderRulesTable();
+      } catch (err) {
+        console.error('Visual rules load failed:', err);
+      }
+    }
+
+    function renderRulesTable() {
+      var tbody = document.getElementById('rules-table-body');
+      var empty = document.getElementById('rules-empty');
+      var table = document.getElementById('rules-table');
+      if (!visualRulesList.length) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        empty.style.display = '';
+        return;
+      }
+      table.style.display = '';
+      empty.style.display = 'none';
+      tbody.innerHTML = visualRulesList.map(function(r) {
+        var pattern = r.command_pattern || r.file_pattern || r.mcp_server || '-';
+        var toolLabel = r.tool || 'Any';
+        var checked = r.enabled ? 'checked' : '';
+        return '<tr>' +
+          '<td class="rule-id-cell">' + escapeHtml(r.rule_id) + '</td>' +
+          '<td>' + escapeHtml(toolLabel) + '</td>' +
+          '<td class="rule-pattern-cell">' + escapeHtml(pattern) + '</td>' +
+          '<td><span class="rule-action-badge ' + r.action + '">' + r.action.toUpperCase() + '</span></td>' +
+          '<td class="rule-desc-cell" title="' + escapeHtml(r.description || '') + '">' + escapeHtml(r.description || '-') + '</td>' +
+          '<td><label class="st-switch"><input type="checkbox" ' + checked + ' onchange="toggleRuleEnabled(' + r.id + ', this.checked)"><span class="st-slider"></span></label></td>' +
+          '<td><div class="rule-actions-cell">' +
+            '<button class="rule-action-btn" onclick="openRuleForm(' + r.id + ')" title="Edit">' +
+              '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+            '</button>' +
+            '<button class="rule-action-btn delete" onclick="deleteRule(' + r.id + ')" title="Delete">' +
+              '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+            '</button>' +
+          '</div></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function openRuleForm(ruleDbId) {
+      editingRuleDbId = ruleDbId || null;
+      var title = document.getElementById('rule-form-title');
+      if (editingRuleDbId) {
+        title.textContent = 'Edit Rule';
+        var rule = visualRulesList.find(function(r) { return r.id === editingRuleDbId; });
+        if (rule) {
+          document.getElementById('rule-form-id').value = rule.rule_id;
+          document.getElementById('rule-form-tool').value = rule.tool || '';
+          document.getElementById('rule-form-command').value = rule.command_pattern || '';
+          document.getElementById('rule-form-file').value = rule.file_pattern || '';
+          document.getElementById('rule-form-mcp').value = rule.mcp_server || '';
+          document.getElementById('rule-form-action').value = rule.action;
+          document.getElementById('rule-form-desc').value = rule.description || '';
+          document.getElementById('rule-form-priority').value = rule.priority || 0;
+        }
+      } else {
+        title.textContent = 'New Rule';
+        document.getElementById('rule-form-id').value = '';
+        document.getElementById('rule-form-tool').value = '';
+        document.getElementById('rule-form-command').value = '';
+        document.getElementById('rule-form-file').value = '';
+        document.getElementById('rule-form-mcp').value = '';
+        document.getElementById('rule-form-action').value = 'deny';
+        document.getElementById('rule-form-desc').value = '';
+        document.getElementById('rule-form-priority').value = '0';
+      }
+      document.getElementById('rule-form-overlay').classList.add('open');
+      document.getElementById('rule-form-panel').classList.add('open');
+      document.getElementById('rule-form-id').focus();
+    }
+
+    function closeRuleForm() {
+      editingRuleDbId = null;
+      document.getElementById('rule-form-overlay').classList.remove('open');
+      document.getElementById('rule-form-panel').classList.remove('open');
+    }
+
+    async function saveRule() {
+      var ruleId = document.getElementById('rule-form-id').value.trim();
+      var tool = document.getElementById('rule-form-tool').value || null;
+      var commandPattern = document.getElementById('rule-form-command').value.trim() || null;
+      var filePattern = document.getElementById('rule-form-file').value.trim() || null;
+      var mcpServer = document.getElementById('rule-form-mcp').value.trim() || null;
+      var action = document.getElementById('rule-form-action').value;
+      var description = document.getElementById('rule-form-desc').value.trim();
+      var priority = parseInt(document.getElementById('rule-form-priority').value, 10) || 0;
+
+      if (!ruleId) { alert('Rule ID is required'); return; }
+      if (!tool && !commandPattern && !filePattern && !mcpServer) {
+        alert('At least one match field (tool, command pattern, file pattern, or MCP server) is required');
+        return;
+      }
+
+      var body = {
+        rule_id: ruleId,
+        tool: tool,
+        command_pattern: commandPattern,
+        file_pattern: filePattern,
+        mcp_server: mcpServer,
+        action: action,
+        description: description,
+        priority: priority
+      };
+
+      try {
+        var url, method;
+        if (editingRuleDbId) {
+          url = API_BASE + '/api/admin/rules/' + editingRuleDbId;
+          method = 'PUT';
+        } else {
+          url = API_BASE + '/api/admin/rules';
+          method = 'POST';
+        }
+        var res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          var errData = await res.json().catch(function() { return {}; });
+          alert(errData.error || 'Save failed: ' + res.status);
+          return;
+        }
+        closeRuleForm();
+        await loadVisualRules();
+      } catch (err) {
+        console.error('Save rule failed:', err);
+        alert('Failed to save rule. Check console for details.');
+      }
+    }
+
+    async function deleteRule(id) {
+      if (!confirm('Delete this rule?')) return;
+      try {
+        var res = await fetch(API_BASE + '/api/admin/rules/' + id, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed: ' + res.status);
+        await loadVisualRules();
+      } catch (err) {
+        console.error('Delete rule failed:', err);
+        alert('Failed to delete rule.');
+      }
+    }
+
+    async function toggleRuleEnabled(id, enabled) {
+      try {
+        var res = await fetch(API_BASE + '/api/admin/rules/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: enabled ? 1 : 0 }),
+        });
+        if (!res.ok) throw new Error('Toggle failed: ' + res.status);
+        await loadVisualRules();
+      } catch (err) {
+        console.error('Toggle rule failed:', err);
+      }
     }
 
     // ── Search page (KQL) ──
@@ -2597,7 +3064,7 @@
       if (!results.length) { bar.innerHTML = ''; return; }
       var hours = timeRangeActiveIdx >= 0 ? (timeRangePresets[timeRangeActiveIdx].hours || 24) : 24;
       var bucketMin = hours <= 1 ? 5 : hours <= 24 ? 60 : hours <= 168 ? 360 : 1440;
-      fetch(API_BASE + '/admin/stats/timeseries?hours=' + hours + '&bucket=' + bucketMin)
+      fetch(API_BASE + '/api/admin/stats/timeseries?hours=' + hours + '&bucket=' + bucketMin)
         .then(function(r) { return r.json(); })
         .then(function(buckets) {
           if (!buckets.length) { bar.innerHTML = ''; return; }
@@ -2673,7 +3140,7 @@
       document.getElementById('search-tbody').innerHTML =
         '<tr><td colspan="2"><div class="search-no-results" style="padding:40px 0;"><div class="search-no-results-icon" style="font-size:1.4rem;">&#9203;</div><div class="search-no-results-title" style="font-size:0.85rem;">Searching…</div></div></td></tr>';
 
-      fetch(API_BASE + '/admin/search?' + params.toString())
+      fetch(API_BASE + '/api/admin/search?' + params.toString())
         .then(function(r) { return r.json(); })
         .then(function(data) { renderSearchResults(data); })
         .catch(function(err) {
@@ -2703,7 +3170,7 @@
       document.getElementById('aggregation-content').innerHTML =
         '<span style="color:var(--text-muted);font-size:0.85rem;">Aggregating…</span>';
 
-      fetch(API_BASE + '/admin/aggregate?' + params.toString())
+      fetch(API_BASE + '/api/admin/aggregate?' + params.toString())
         .then(function(r) { return r.json(); })
         .then(function(data) { renderAggregationResults(data, kqlAggregation.groupBy); })
         .catch(function(err) {
@@ -3033,7 +3500,7 @@
         else params.set('q', f.value);
       });
       params.set('limit', '500'); params.set('offset', '0');
-      fetch(API_BASE + '/admin/search?' + params.toString())
+      fetch(API_BASE + '/api/admin/search?' + params.toString())
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (!data.results || !data.results.length) { alert('No results to export.'); return; }
@@ -3259,7 +3726,7 @@
     function loadActors() {
       document.getElementById('actors-tbody').innerHTML =
         '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>';
-      fetch(API_BASE + '/admin/stats/top-actors?limit=50')
+      fetch(API_BASE + '/api/admin/stats/top-actors?limit=50')
         .then(function(r) { return r.json(); })
         .then(function(data) {
           actorList = (Array.isArray(data) ? data : []).map(function(a) {
@@ -3325,7 +3792,7 @@
     }
 
     function loadActorMiniChart() {
-      fetch(API_BASE + '/admin/stats/timeseries?hours=24&bucket=60')
+      fetch(API_BASE + '/api/admin/stats/timeseries?hours=24&bucket=60')
         .then(function(r) { return r.json(); })
         .then(function(buckets) { renderActorMiniChart(buckets); })
         .catch(function() {});
@@ -3461,8 +3928,8 @@
       renderAiClients();
       // Load settings for upstream config + search stats for metrics in parallel
       Promise.all([
-        fetch(API_BASE + '/admin/settings').then(function(r) { return r.json(); }),
-        fetch(API_BASE + '/admin/search?limit=500').then(function(r) { return r.json(); })
+        fetch(API_BASE + '/api/admin/settings').then(function(r) { return r.json(); }),
+        fetch(API_BASE + '/api/admin/search?limit=500').then(function(r) { return r.json(); })
       ]).then(function(results) {
         var settings = results[0];
         var searchData = results[1];
@@ -3539,10 +4006,17 @@
       navigateTo('search');
     }
 
+    var _navFromPopstate = false;
+
     function navigateTo(pageId) {
       document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
       var target = document.getElementById('page-' + pageId);
       if (target) target.classList.add('active');
+
+      // Update URL for deep-linking
+      if (!_navFromPopstate) {
+        history.pushState(null, '', '/admin/' + pageId);
+      }
 
       // Load data for the target page
       if (pageId === 'overview') {
@@ -3552,7 +4026,10 @@
         if (dashboardInterval) { clearInterval(dashboardInterval); dashboardInterval = null; }
       }
       if (pageId === 'settings') loadSettings();
-      if (pageId === 'policies') loadPolicies();
+      if (pageId === 'policies') {
+        if (activePolicyTab === 'visual') loadVisualRules();
+        else loadPolicies();
+      }
       if (pageId === 'search') loadSearch();
       if (pageId === 'actors') loadActors();
       if (pageId === 'integrations') loadIntegrations();
@@ -3560,6 +4037,25 @@
       // Close actor panel when navigating away
       if (pageId !== 'actors') closeActorPanel();
     }
+
+    function getPageFromPath() {
+      var path = window.location.pathname.replace(/^\/admin\/?/, '').replace(/\/$/, '');
+      if (!path || path === 'index.html') return 'overview';
+      return path;
+    }
+
+    function handleRoute() {
+      var pageId = getPageFromPath();
+      if (!document.getElementById('page-' + pageId)) return;
+      document.querySelectorAll('.sidebar-nav a').forEach(function(l) { l.classList.remove('active'); });
+      var link = document.querySelector('.sidebar-nav a[data-page="' + pageId + '"]');
+      if (link) link.classList.add('active');
+      _navFromPopstate = true;
+      navigateTo(pageId);
+      _navFromPopstate = false;
+    }
+
+    window.addEventListener('popstate', handleRoute);
 
     // ── Sidebar collapse ──
     function toggleSidebar() {
@@ -3570,10 +4066,16 @@
     }
 
     // ── Init ──
-    loadDashboard();
-    dashboardInterval = setInterval(loadDashboard, 30000);
-
     document.getElementById('refresh-btn').addEventListener('click', loadDashboard);
+
+    // Route from URL path, default to overview
+    var initPage = getPageFromPath();
+    if (initPage !== 'overview' && document.getElementById('page-' + initPage)) {
+      handleRoute();
+    } else {
+      loadDashboard();
+      dashboardInterval = setInterval(loadDashboard, 30000);
+    }
 
 
     // ── Sidebar nav ──

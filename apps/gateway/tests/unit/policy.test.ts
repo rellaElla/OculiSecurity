@@ -222,6 +222,30 @@ describe('PolicyService (built-in fallback)', () => {
     });
   });
 
+  describe('hook sources (ext:*) bypass upstream checks', () => {
+    it('allows any tool from hook source', async () => {
+      const decision = await policy.evaluate(makeInput({
+        upstreamId: 'ext:claude-code',
+        tool: 'Bash',
+        args: { command: 'ls -la && echo done' },
+        roles: ['developer'],
+      }));
+
+      expect(decision.allow).toBe(true);
+    });
+
+    it('allows hook source with patterns that would block MCP upstreams', async () => {
+      const decision = await policy.evaluate(makeInput({
+        upstreamId: 'ext:cursor',
+        tool: 'shell',
+        args: { command: 'cd ../parent; npm test' },
+        roles: ['viewer'],
+      }));
+
+      expect(decision.allow).toBe(true);
+    });
+  });
+
   describe('missing tool', () => {
     it('denies when tool is empty string', async () => {
       const decision = await policy.evaluate(makeInput({ tool: '' }));

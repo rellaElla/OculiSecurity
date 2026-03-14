@@ -289,7 +289,7 @@ describe('Audit log', () => {
     // Query audit log
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/logs?limit=10',
+      url: '/api/admin/logs?limit=10',
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -403,7 +403,7 @@ describe('Telemetry ingestion — POST /v1/events', () => {
 
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/stats/top-tools?limit=50',
+      url: '/api/admin/stats/top-tools?limit=50',
     });
 
     const body = JSON.parse(res.body);
@@ -572,7 +572,7 @@ describe('Hook enforcement — POST /v1/hooks', () => {
       }),
     });
 
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/stats/top-tools?limit=100' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/stats/top-tools?limit=100' });
     const body = JSON.parse(res.body) as { tool: string }[];
     expect(body.some(t => t.tool === tools[0])).toBe(true);
     // Cursor beforeMCPExecution normalises to 'mcp_call' (specific mcp_tool preserved in tool_args)
@@ -585,7 +585,7 @@ describe('Dashboard stats endpoints', () => {
   it('GET /admin/stats/summary returns aggregate stats', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/stats/summary?hours=24',
+      url: '/api/admin/stats/summary?hours=24',
     });
 
     expect(res.statusCode).toBe(200);
@@ -600,7 +600,7 @@ describe('Dashboard stats endpoints', () => {
   it('GET /admin/stats/top-tools returns array', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/stats/top-tools?limit=5',
+      url: '/api/admin/stats/top-tools?limit=5',
     });
 
     expect(res.statusCode).toBe(200);
@@ -614,7 +614,7 @@ describe('Dashboard stats endpoints', () => {
   it('GET /admin/stats/top-denied returns array', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/stats/top-denied?limit=5',
+      url: '/api/admin/stats/top-denied?limit=5',
     });
 
     expect(res.statusCode).toBe(200);
@@ -625,7 +625,7 @@ describe('Dashboard stats endpoints', () => {
   it('GET /admin/stats/top-actors returns array', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/stats/top-actors?limit=5',
+      url: '/api/admin/stats/top-actors?limit=5',
     });
 
     expect(res.statusCode).toBe(200);
@@ -639,7 +639,7 @@ describe('Dashboard stats endpoints', () => {
   it('GET /admin/stats/decisions returns allowed/denied breakdown', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/stats/decisions',
+      url: '/api/admin/stats/decisions',
     });
 
     expect(res.statusCode).toBe(200);
@@ -651,7 +651,7 @@ describe('Dashboard stats endpoints', () => {
   it('GET /admin/stats/timeseries returns time buckets', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/stats/timeseries?hours=24&bucket=60',
+      url: '/api/admin/stats/timeseries?hours=24&bucket=60',
     });
 
     expect(res.statusCode).toBe(200);
@@ -661,12 +661,12 @@ describe('Dashboard stats endpoints', () => {
 
   it('stats endpoints work without Authorization header', async () => {
     const urls = [
-      '/admin/stats/summary',
-      '/admin/stats/top-tools',
-      '/admin/stats/top-denied',
-      '/admin/stats/top-actors',
-      '/admin/stats/decisions',
-      '/admin/stats/timeseries',
+      '/api/admin/stats/summary',
+      '/api/admin/stats/top-tools',
+      '/api/admin/stats/top-denied',
+      '/api/admin/stats/top-actors',
+      '/api/admin/stats/decisions',
+      '/api/admin/stats/timeseries',
     ];
 
     for (const url of urls) {
@@ -690,7 +690,7 @@ describe('Dashboard stats endpoints', () => {
     // Check it shows up in top-tools
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/stats/top-tools?limit=50',
+      url: '/api/admin/stats/top-tools?limit=50',
     });
 
     const body = JSON.parse(res.body);
@@ -704,7 +704,7 @@ describe('Settings endpoint — GET /admin/settings', () => {
   it('returns gateway configuration without secrets', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/settings',
+      url: '/api/admin/settings',
     });
 
     expect(res.statusCode).toBe(200);
@@ -741,7 +741,7 @@ describe('Settings endpoint — GET /admin/settings', () => {
   it('does not expose JWT secret or upstream auth headers', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/settings',
+      url: '/api/admin/settings',
     });
 
     const text = res.body;
@@ -758,7 +758,7 @@ describe('Policy management endpoints', () => {
   it('GET /admin/policies returns seeded policies', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/policies',
+      url: '/api/admin/policies',
     });
 
     expect(res.statusCode).toBe(200);
@@ -774,14 +774,14 @@ describe('Policy management endpoints', () => {
   it('GET /admin/policies/:id returns a single policy', async () => {
     const listRes = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/policies',
+      url: '/api/admin/policies',
     });
     const policies = JSON.parse(listRes.body).policies;
     const id = policies[0].id;
 
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/policies/' + id,
+      url: '/api/admin/policies/' + id,
     });
 
     expect(res.statusCode).toBe(200);
@@ -793,7 +793,7 @@ describe('Policy management endpoints', () => {
   it('GET /admin/policies/:id returns 404 for non-existent id', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/policies/99999',
+      url: '/api/admin/policies/99999',
     });
 
     expect(res.statusCode).toBe(404);
@@ -802,7 +802,7 @@ describe('Policy management endpoints', () => {
   it('POST /admin/policies creates a new policy', async () => {
     const res = await gatewayApp.inject({
       method: 'POST',
-      url: '/admin/policies',
+      url: '/api/admin/policies',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Test Policy',
@@ -821,7 +821,7 @@ describe('Policy management endpoints', () => {
   it('POST /admin/policies returns 400 when name is missing', async () => {
     const res = await gatewayApp.inject({
       method: 'POST',
-      url: '/admin/policies',
+      url: '/api/admin/policies',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rego: 'package test' }),
     });
@@ -832,7 +832,7 @@ describe('Policy management endpoints', () => {
   it('PUT /admin/policies/:id updates a policy', async () => {
     const createRes = await gatewayApp.inject({
       method: 'POST',
-      url: '/admin/policies',
+      url: '/api/admin/policies',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Update Test',
@@ -844,7 +844,7 @@ describe('Policy management endpoints', () => {
 
     const res = await gatewayApp.inject({
       method: 'PUT',
-      url: '/admin/policies/' + created.id,
+      url: '/api/admin/policies/' + created.id,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Updated Name',
@@ -862,14 +862,14 @@ describe('Policy management endpoints', () => {
   it('POST /admin/policies/:id/duplicate duplicates a policy', async () => {
     const listRes = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/policies',
+      url: '/api/admin/policies',
     });
     const policies = JSON.parse(listRes.body).policies;
     const original = policies[0];
 
     const res = await gatewayApp.inject({
       method: 'POST',
-      url: '/admin/policies/' + original.id + '/duplicate',
+      url: '/api/admin/policies/' + original.id + '/duplicate',
     });
 
     expect(res.statusCode).toBe(201);
@@ -883,7 +883,7 @@ describe('Policy management endpoints', () => {
   it('DELETE /admin/policies/:id deletes a policy', async () => {
     const createRes = await gatewayApp.inject({
       method: 'POST',
-      url: '/admin/policies',
+      url: '/api/admin/policies',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Delete Me',
@@ -895,7 +895,7 @@ describe('Policy management endpoints', () => {
 
     const res = await gatewayApp.inject({
       method: 'DELETE',
-      url: '/admin/policies/' + created.id,
+      url: '/api/admin/policies/' + created.id,
     });
 
     expect(res.statusCode).toBe(200);
@@ -903,7 +903,7 @@ describe('Policy management endpoints', () => {
 
     const getRes = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/policies/' + created.id,
+      url: '/api/admin/policies/' + created.id,
     });
     expect(getRes.statusCode).toBe(404);
   });
@@ -911,7 +911,7 @@ describe('Policy management endpoints', () => {
   it('POST /admin/policies/test evaluates policy input', async () => {
     const res = await gatewayApp.inject({
       method: 'POST',
-      url: '/admin/policies/test',
+      url: '/api/admin/policies/test',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         input: {
@@ -938,7 +938,7 @@ describe('Policy management endpoints', () => {
   it('POST /admin/policies/test returns 400 without input', async () => {
     const res = await gatewayApp.inject({
       method: 'POST',
-      url: '/admin/policies/test',
+      url: '/api/admin/policies/test',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     });
@@ -949,7 +949,7 @@ describe('Policy management endpoints', () => {
   it('policy endpoints work without Authorization header', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/policies',
+      url: '/api/admin/policies',
     });
     expect(res.statusCode).toBe(200);
   });
@@ -960,7 +960,7 @@ describe('Policy management endpoints', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 describe('Search endpoint', () => {
   it('GET /admin/search returns results and total', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/search' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/search' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body).toHaveProperty('total');
@@ -970,7 +970,7 @@ describe('Search endpoint', () => {
 
 
   it('GET /admin/search filters by decision=deny', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/search?decision=deny' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/search?decision=deny' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     body.results.forEach((r: { decision: string }) => {
@@ -979,7 +979,7 @@ describe('Search endpoint', () => {
   });
 
   it('GET /admin/search filters by decision=allow', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/search?decision=allow' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/search?decision=allow' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     body.results.forEach((r: { decision: string }) => {
@@ -988,7 +988,7 @@ describe('Search endpoint', () => {
   });
 
   it('GET /admin/search filters by text query', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/search?q=readFile' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/search?q=readFile' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     body.results.forEach((r: { tool: string }) => {
@@ -997,14 +997,14 @@ describe('Search endpoint', () => {
   });
 
   it('GET /admin/search respects limit and offset', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/search?limit=2&offset=0' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/search?limit=2&offset=0' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.results.length).toBeLessThanOrEqual(2);
   });
 
   it('GET /admin/search works without auth header', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/search' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/search' });
     expect(res.statusCode).toBe(200);
   });
 });
@@ -1031,7 +1031,7 @@ describe('Aggregate endpoint', () => {
   });
 
   it('groups by single field (tool) and returns DESC-ordered results', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/aggregate?groupBy=tool' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/aggregate?groupBy=tool' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body).toHaveProperty('groupBy');
@@ -1048,7 +1048,7 @@ describe('Aggregate endpoint', () => {
   });
 
   it('groups by two fields (actor, decision) and includes both columns', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/aggregate?groupBy=actor,decision' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/aggregate?groupBy=actor,decision' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.results.length).toBeGreaterThan(0);
@@ -1058,11 +1058,11 @@ describe('Aggregate endpoint', () => {
   });
 
   it('applies decision=deny WHERE filter and returns only deny rows', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/aggregate?groupBy=actor&decision=deny' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/aggregate?groupBy=actor&decision=deny' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     // All rows must come from deny decisions (verify via a search)
-    const searchRes = await gatewayApp.inject({ method: 'GET', url: '/admin/search?decision=deny' });
+    const searchRes = await gatewayApp.inject({ method: 'GET', url: '/api/admin/search?decision=deny' });
     const searchBody = JSON.parse(searchRes.body);
     if (searchBody.total > 0) {
       expect(body.results.length).toBeGreaterThan(0);
@@ -1072,7 +1072,7 @@ describe('Aggregate endpoint', () => {
   });
 
   it('returns 400 when groupBy is missing', async () => {
-    const res = await gatewayApp.inject({ method: 'GET', url: '/admin/aggregate' });
+    const res = await gatewayApp.inject({ method: 'GET', url: '/api/admin/aggregate' });
     expect(res.statusCode).toBe(400);
     const body = JSON.parse(res.body);
     expect(body.error).toMatch(/groupBy/i);
@@ -1081,7 +1081,7 @@ describe('Aggregate endpoint', () => {
   it('returns empty results for unknown (non-whitelisted) groupBy field', async () => {
     const res = await gatewayApp.inject({
       method: 'GET',
-      url: '/admin/aggregate?groupBy=nonexistentField',
+      url: '/api/admin/aggregate?groupBy=nonexistentField',
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);

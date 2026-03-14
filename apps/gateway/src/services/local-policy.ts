@@ -95,7 +95,7 @@ export function loadPolicyFile(filePath: string): LocalPolicyFile {
 // Rule matching
 // ---------------------------------------------------------------------------
 
-function ruleMatches(rule: PolicyRule, event: OculiEvent): boolean {
+export function ruleMatches(rule: PolicyRule, event: OculiEvent): boolean {
   const { match } = rule;
 
   // All specified match fields must match (AND logic)

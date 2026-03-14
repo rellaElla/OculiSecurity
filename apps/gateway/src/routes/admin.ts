@@ -2,8 +2,10 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 import { AppConfig } from '../config';
 import { AuditService } from '../services/audit';
 import { UpstreamConnector } from '../services/upstream';
-import { PolicyStore } from '../services/policy-store';
+import { PolicyStore, CreateVisualRuleInput } from '../services/policy-store';
 import { PolicyService } from '../services/policy';
+import { ruleMatches, PolicyRule } from '../services/local-policy';
+import { OculiEvent } from './adapters/schema';
 
 interface AdminRouteContext {
   audit: AuditService;
@@ -19,7 +21,7 @@ export function registerAdminRoutes(
 ): void {
   // GET /admin/search — unified search over audit records (unauthenticated — demo only)
   app.get<{ Querystring: { q?: string; decision?: string; limit?: string; offset?: string; from?: string; to?: string } }>(
-    '/admin/search',
+    '/api/admin/search',
     async (request, reply) => {
       const limit = Math.min(parseInt(request.query.limit ?? '50', 10) || 50, 500);
       const offset = parseInt(request.query.offset ?? '0', 10) || 0;
@@ -39,7 +41,7 @@ export function registerAdminRoutes(
 
   // GET /admin/aggregate — server-side GROUP BY aggregation (unauthenticated — demo only)
   app.get<{ Querystring: { groupBy?: string; q?: string; decision?: string; from?: string; to?: string; limit?: string } }>(
-    '/admin/aggregate',
+    '/api/admin/aggregate',
     async (request, reply) => {
       const groupByRaw = request.query.groupBy;
       if (!groupByRaw || !groupByRaw.trim()) {
@@ -68,7 +70,7 @@ export function registerAdminRoutes(
 
   // GET /admin/logs — recent audit log entries (requires auth)
   app.get<{ Querystring: { limit?: string; offset?: string } }>(
-    '/admin/logs',
+    '/api/admin/logs',
     async (
       request: FastifyRequest<{ Querystring: { limit?: string; offset?: string } }>,
       reply
@@ -90,7 +92,7 @@ export function registerAdminRoutes(
   );
 
   // GET /admin/upstreams — list registered upstreams (requires auth)
-  app.get('/admin/upstreams', async (request, reply) => {
+  app.get('/api/admin/upstreams', async (request, reply) => {
     if (!request.actor?.actor) {
       reply.code(401).send({ error: 'Unauthorized' });
       return;
@@ -112,7 +114,7 @@ export function registerAdminRoutes(
   // -----------------------------------------------------------------------
 
   app.get<{ Querystring: { hours?: string } }>(
-    '/admin/stats/summary',
+    '/api/admin/stats/summary',
     async (request, reply) => {
       const hours = Math.min(parseInt(request.query.hours ?? '24', 10) || 24, 720);
       reply.send(ctx.audit.summary(hours));
@@ -120,7 +122,7 @@ export function registerAdminRoutes(
   );
 
   app.get<{ Querystring: { limit?: string } }>(
-    '/admin/stats/top-tools',
+    '/api/admin/stats/top-tools',
     async (request, reply) => {
       const limit = Math.min(parseInt(request.query.limit ?? '5', 10) || 5, 50);
       reply.send(ctx.audit.topTools(limit));
@@ -128,7 +130,7 @@ export function registerAdminRoutes(
   );
 
   app.get<{ Querystring: { limit?: string } }>(
-    '/admin/stats/top-denied',
+    '/api/admin/stats/top-denied',
     async (request, reply) => {
       const limit = Math.min(parseInt(request.query.limit ?? '5', 10) || 5, 50);
       reply.send(ctx.audit.topDeniedTools(limit));
@@ -136,19 +138,19 @@ export function registerAdminRoutes(
   );
 
   app.get<{ Querystring: { limit?: string } }>(
-    '/admin/stats/top-actors',
+    '/api/admin/stats/top-actors',
     async (request, reply) => {
       const limit = Math.min(parseInt(request.query.limit ?? '5', 10) || 5, 50);
       reply.send(ctx.audit.topActors(limit));
     }
   );
 
-  app.get('/admin/stats/decisions', async (_request, reply) => {
+  app.get('/api/admin/stats/decisions', async (_request, reply) => {
     reply.send(ctx.audit.decisionBreakdown());
   });
 
   app.get<{ Querystring: { hours?: string; bucket?: string } }>(
-    '/admin/stats/timeseries',
+    '/api/admin/stats/timeseries',
     async (request, reply) => {
       const hours = Math.min(parseInt(request.query.hours ?? '1', 10) || 1, 168);
       const bucket = Math.min(parseInt(request.query.bucket ?? '5', 10) || 5, 60);
@@ -160,7 +162,7 @@ export function registerAdminRoutes(
   // Settings (read-only view of runtime config)
   // -----------------------------------------------------------------------
 
-  app.get('/admin/settings', async (_request, reply) => {
+  app.get('/api/admin/settings', async (_request, reply) => {
     const c = ctx.config;
     reply.send({
       gateway: {
@@ -199,7 +201,7 @@ export function registerAdminRoutes(
 
   // POST /admin/policies/test — must be registered BEFORE :id param route
   app.post<{ Body: { input: Record<string, unknown> } }>(
-    '/admin/policies/test',
+    '/api/admin/policies/test',
     async (request, reply) => {
       const body = request.body as Record<string, unknown>;
       if (!body.input || typeof body.input !== 'object') {
@@ -217,14 +219,14 @@ export function registerAdminRoutes(
   );
 
   // GET /admin/policies — list all policies
-  app.get('/admin/policies', async (_request, reply) => {
+  app.get('/api/admin/policies', async (_request, reply) => {
     const policies = ctx.policyStore.list();
     reply.send({ policies });
   });
 
   // GET /admin/policies/:id — get single policy
   app.get<{ Params: { id: string } }>(
-    '/admin/policies/:id',
+    '/api/admin/policies/:id',
     async (request, reply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) {
@@ -242,7 +244,7 @@ export function registerAdminRoutes(
 
   // POST /admin/policies — create new policy
   app.post<{ Body: { name: string; rego: string; description?: string; version?: string; updatedBy?: string } }>(
-    '/admin/policies',
+    '/api/admin/policies',
     async (request, reply) => {
       const body = request.body as Record<string, unknown>;
       const name = body.name as string | undefined;
@@ -264,7 +266,7 @@ export function registerAdminRoutes(
 
   // PUT /admin/policies/:id — update policy
   app.put<{ Params: { id: string }; Body: Record<string, unknown> }>(
-    '/admin/policies/:id',
+    '/api/admin/policies/:id',
     async (request, reply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) {
@@ -290,7 +292,7 @@ export function registerAdminRoutes(
 
   // POST /admin/policies/:id/duplicate — duplicate a policy
   app.post<{ Params: { id: string } }>(
-    '/admin/policies/:id/duplicate',
+    '/api/admin/policies/:id/duplicate',
     async (request, reply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) {
@@ -308,7 +310,7 @@ export function registerAdminRoutes(
 
   // DELETE /admin/policies/:id — delete a policy
   app.delete<{ Params: { id: string } }>(
-    '/admin/policies/:id',
+    '/api/admin/policies/:id',
     async (request, reply) => {
       const id = parseInt(request.params.id, 10);
       if (isNaN(id)) {
@@ -318,6 +320,187 @@ export function registerAdminRoutes(
       const deleted = ctx.policyStore.delete(id);
       if (!deleted) {
         reply.code(404).send({ error: 'Policy not found' });
+        return;
+      }
+      reply.send({ success: true });
+    }
+  );
+
+  // -----------------------------------------------------------------------
+  // Visual Rules (unauthenticated — demo only)
+  // -----------------------------------------------------------------------
+
+  // POST /admin/rules/test — must be registered BEFORE :id param route
+  app.post<{ Body: { rule: Record<string, unknown>; event: Record<string, unknown> } }>(
+    '/api/admin/rules/test',
+    async (request, reply) => {
+      const body = request.body as Record<string, unknown>;
+      const ruleInput = body.rule as Record<string, unknown> | undefined;
+      const eventInput = body.event as Record<string, unknown> | undefined;
+      if (!ruleInput || !eventInput) {
+        reply.code(400).send({ error: 'rule and event objects are required' });
+        return;
+      }
+
+      // Validate regex patterns
+      for (const field of ['command_pattern', 'file_pattern'] as const) {
+        const pattern = ruleInput[field] as string | undefined;
+        if (pattern) {
+          try { new RegExp(pattern); } catch {
+            reply.code(400).send({ error: `Invalid regex in ${field}: ${pattern}` });
+            return;
+          }
+        }
+      }
+
+      const policyRule: PolicyRule = {
+        id: (ruleInput.rule_id as string) ?? 'test',
+        match: {
+          tool: ruleInput.tool as string | undefined,
+          command_pattern: ruleInput.command_pattern as string | undefined,
+          file_pattern: ruleInput.file_pattern as string | undefined,
+          mcp_server: ruleInput.mcp_server as string | undefined,
+        },
+        action: (['deny', 'warn', 'allow'].includes(ruleInput.action as string)
+          ? ruleInput.action as 'deny' | 'warn' | 'allow'
+          : 'deny'),
+      };
+
+      const event = eventInput as unknown as OculiEvent;
+      const matches = ruleMatches(policyRule, event);
+      reply.send({ matches, action: matches ? policyRule.action : 'no match' });
+    }
+  );
+
+  // GET /admin/rules — list all visual rules
+  app.get('/api/admin/rules', async (_request, reply) => {
+    const rules = ctx.policyStore.listVisualRules();
+    reply.send({ rules });
+  });
+
+  // GET /admin/rules/:id — get single visual rule
+  app.get<{ Params: { id: string } }>(
+    '/api/admin/rules/:id',
+    async (request, reply) => {
+      const id = parseInt(request.params.id, 10);
+      if (isNaN(id)) {
+        reply.code(400).send({ error: 'Invalid rule id' });
+        return;
+      }
+      const rule = ctx.policyStore.getVisualRuleById(id);
+      if (!rule) {
+        reply.code(404).send({ error: 'Rule not found' });
+        return;
+      }
+      reply.send(rule);
+    }
+  );
+
+  // POST /admin/rules — create visual rule
+  app.post<{ Body: Record<string, unknown> }>(
+    '/api/admin/rules',
+    async (request, reply) => {
+      const body = request.body as Record<string, unknown>;
+      const rule_id = body.rule_id as string | undefined;
+      const action = body.action as string | undefined;
+      if (!rule_id || !action) {
+        reply.code(400).send({ error: 'rule_id and action are required' });
+        return;
+      }
+      if (!['deny', 'warn', 'allow'].includes(action)) {
+        reply.code(400).send({ error: 'action must be deny, warn, or allow' });
+        return;
+      }
+
+      // Validate regex patterns
+      for (const field of ['command_pattern', 'file_pattern'] as const) {
+        const pattern = body[field] as string | undefined;
+        if (pattern) {
+          try { new RegExp(pattern); } catch {
+            reply.code(400).send({ error: `Invalid regex in ${field}: ${pattern}` });
+            return;
+          }
+        }
+      }
+
+      // Check at least one match field
+      if (!body.tool && !body.command_pattern && !body.file_pattern && !body.mcp_server) {
+        reply.code(400).send({ error: 'At least one match field (tool, command_pattern, file_pattern, mcp_server) is required' });
+        return;
+      }
+
+      try {
+        const created = ctx.policyStore.createVisualRule(body as unknown as CreateVisualRuleInput);
+        reply.code(201).send(created);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('UNIQUE constraint')) {
+          reply.code(409).send({ error: `Rule ID "${rule_id}" already exists` });
+          return;
+        }
+        throw err;
+      }
+    }
+  );
+
+  // PUT /admin/rules/:id — update visual rule
+  app.put<{ Params: { id: string }; Body: Record<string, unknown> }>(
+    '/api/admin/rules/:id',
+    async (request, reply) => {
+      const id = parseInt(request.params.id, 10);
+      if (isNaN(id)) {
+        reply.code(400).send({ error: 'Invalid rule id' });
+        return;
+      }
+
+      const body = request.body as Record<string, unknown>;
+
+      // Validate regex patterns if provided
+      for (const field of ['command_pattern', 'file_pattern'] as const) {
+        const pattern = body[field] as string | undefined;
+        if (pattern) {
+          try { new RegExp(pattern); } catch {
+            reply.code(400).send({ error: `Invalid regex in ${field}: ${pattern}` });
+            return;
+          }
+        }
+      }
+
+      if (body.action && !['deny', 'warn', 'allow'].includes(body.action as string)) {
+        reply.code(400).send({ error: 'action must be deny, warn, or allow' });
+        return;
+      }
+
+      try {
+        const updated = ctx.policyStore.updateVisualRule(id, body as any);
+        if (!updated) {
+          reply.code(404).send({ error: 'Rule not found' });
+          return;
+        }
+        reply.send(updated);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('UNIQUE constraint')) {
+          reply.code(409).send({ error: `Rule ID "${body.rule_id}" already exists` });
+          return;
+        }
+        throw err;
+      }
+    }
+  );
+
+  // DELETE /admin/rules/:id — delete visual rule
+  app.delete<{ Params: { id: string } }>(
+    '/api/admin/rules/:id',
+    async (request, reply) => {
+      const id = parseInt(request.params.id, 10);
+      if (isNaN(id)) {
+        reply.code(400).send({ error: 'Invalid rule id' });
+        return;
+      }
+      const deleted = ctx.policyStore.deleteVisualRule(id);
+      if (!deleted) {
+        reply.code(404).send({ error: 'Rule not found' });
         return;
       }
       reply.send({ success: true });

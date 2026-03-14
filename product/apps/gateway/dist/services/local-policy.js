@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findPolicyFile = findPolicyFile;
 exports.loadPolicyFile = loadPolicyFile;
+exports.ruleMatches = ruleMatches;
 exports.evaluateLocalPolicy = evaluateLocalPolicy;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));

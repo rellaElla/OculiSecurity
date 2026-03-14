@@ -71,6 +71,14 @@ export async function buildServer(config: AppConfig): Promise<GatewayServer> {
   const cleanupInterval = setInterval(() => rateLimiter.cleanup(), 60_000);
   cleanupInterval.unref(); // don't prevent process exit
 
+  // Serve favicon at root for browsers
+  app.get('/favicon.svg', (_req, reply) => {
+    reply.type('image/svg+xml').sendFile('favicon.svg');
+  });
+  app.get('/favicon.ico', (_req, reply) => {
+    reply.type('image/svg+xml').sendFile('favicon.svg');
+  });
+
   // -----------------------------------------------------------------------
   // Auth middleware (all routes except /health and /admin static)
   // -----------------------------------------------------------------------
@@ -96,9 +104,13 @@ export async function buildServer(config: AppConfig): Promise<GatewayServer> {
   registerHooksRoute(app, { policy, audit, rateLimiter });
 
   // -----------------------------------------------------------------------
-  // 404 handler
+  // 404 handler — SPA catch-all for /admin/* paths
   // -----------------------------------------------------------------------
-  app.setNotFoundHandler((_req, reply) => {
+  app.setNotFoundHandler((req, reply) => {
+    if (req.method === 'GET' && req.url.startsWith('/admin/')) {
+      reply.type('text/html').sendFile('index.html');
+      return;
+    }
     reply.code(404).send({ error: 'Not found' });
   });
 

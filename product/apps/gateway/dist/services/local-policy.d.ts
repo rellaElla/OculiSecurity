@@ -28,6 +28,7 @@ export declare function findPolicyFile(startDir?: string): string | null;
  * Throws on parse errors so callers can decide how to handle them.
  */
 export declare function loadPolicyFile(filePath: string): LocalPolicyFile;
+export declare function ruleMatches(rule: PolicyRule, event: OculiEvent): boolean;
 /**
  * Evaluate local policy rules against a normalized OculiEvent.
  *
