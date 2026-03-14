@@ -9,9 +9,14 @@ import future.keywords.in
 default allow := false
 
 # ---------------------------------------------------------------------------
-# ALLOW — all conditions must pass
+# ALLOW — hook sources (IDE events) are always allowed at gateway level.
+# Enforcement is handled by local policy on the client side.
 # ---------------------------------------------------------------------------
+allow if { hook_source }
+
+# ALLOW — MCP upstream calls must pass all conditions
 allow if {
+    not hook_source
     not missing_tool
     tool_allowed
     not dangerous_args
@@ -26,17 +31,20 @@ reason := "allowed" if { allow }
 else := "tool not specified" if { missing_tool }
 
 else := "tool not in allowlist for this upstream" if {
+    not hook_source
     not missing_tool
     not tool_allowed
 }
 
 else := "dangerous argument pattern detected" if {
+    not hook_source
     not missing_tool
     tool_allowed
     dangerous_args
 }
 
 else := "role restriction: insufficient permissions for write operations" if {
+    not hook_source
     not missing_tool
     tool_allowed
     not dangerous_args
@@ -72,6 +80,9 @@ tool_allowlists := {
     "fs-server":   {"readFile", "listDir", "writeFile"},
     "http-server": {"fetchUrl", "postUrl"},
 }
+
+# Helper: hook source — IDE events forwarded via CLI hooks (ext:* upstreamId)
+hook_source if { startswith(input.upstreamId, "ext:") }
 
 # Helper: tool is missing / empty
 missing_tool if { not input.tool }

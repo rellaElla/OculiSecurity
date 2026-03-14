@@ -1,0 +1,1 @@
+{"version":3,"file":"events.d.ts","sourceRoot":"","sources":["../../src/routes/events.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,eAAe,EAAkB,MAAM,SAAS,CAAC;AAE1D,OAAO,EAAE,YAAY,EAAE,MAAM,mBAAmB,CAAC;AAIjD,UAAU,kBAAkB;IAC1B,KAAK,EAAE,YAAY,CAAC;CACrB;AAwCD,wBAAgB,mBAAmB,CACjC,GAAG,EAAE,eAAe,EACpB,GAAG,EAAE,kBAAkB,GACtB,IAAI,CAmEN"}

@@ -1,0 +1,9 @@
+{
+  "appName": "demo",
+  "version": "1.0.0",
+  "password": "super-secret-should-be-redacted",
+  "apiKey": "sk-demo-key-also-redacted",
+  "allowedHosts": [
+    "localhost"
+  ]
+}
