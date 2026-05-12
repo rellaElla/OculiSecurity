@@ -11,5 +11,7 @@ export interface AppConfig {
     rateLimitRefillPerSecond: number;
     logLevel: string;
 }
+export declare class ConfigValidationError extends Error {
+    constructor(message: string);
+}
 export declare function loadConfig(): AppConfig;
-//# sourceMappingURL=config.d.ts.map

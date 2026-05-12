@@ -258,7 +258,7 @@ export function registerAdminRoutes(
         rego,
         description: (body.description as string) ?? undefined,
         version: (body.version as string) ?? undefined,
-        updatedBy: (body.updatedBy as string) ?? 'admin@oculi.security',
+        updatedBy: (body.updatedBy as string) ?? 'admin@oculisecurity.com',
       });
       reply.code(201).send(created);
     }
@@ -279,7 +279,7 @@ export function registerAdminRoutes(
         description: body.description as string | undefined,
         version: body.version as string | undefined,
         rego: body.rego as string | undefined,
-        updatedBy: (body.updatedBy as string) ?? 'admin@oculi.security',
+        updatedBy: (body.updatedBy as string) ?? 'admin@oculisecurity.com',
         isActive: body.isActive as number | undefined,
       });
       if (!updated) {

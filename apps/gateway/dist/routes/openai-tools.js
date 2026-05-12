@@ -119,4 +119,3 @@ function registerOpenAIToolsRoutes(app, ctx) {
         reply.code(200).send(results);
     });
 }
-//# sourceMappingURL=openai-tools.js.map

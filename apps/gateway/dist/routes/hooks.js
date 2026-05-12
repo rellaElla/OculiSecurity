@@ -133,4 +133,3 @@ function registerHooksRoute(app, ctx) {
         reply.code(200).send(JSON.parse(adapter.formatAllow()));
     });
 }
-//# sourceMappingURL=hooks.js.map

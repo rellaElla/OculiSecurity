@@ -95,4 +95,3 @@ function routeStdin(stdin, explicitName) {
 function registeredAdapters() {
     return Object.keys(ADAPTER_REGISTRY);
 }
-//# sourceMappingURL=router.js.map

@@ -24,4 +24,3 @@ export declare class RateLimiter {
     /** For testing: reset all buckets */
     reset(): void;
 }
-//# sourceMappingURL=ratelimit.d.ts.map

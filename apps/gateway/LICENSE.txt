@@ -1,0 +1,201 @@
+Oculi Security End User License Agreement
+
+Version 1.0 — Effective November 11, 2026
+
+This End User License Agreement ("Agreement") is a binding contract between
+you ("Customer," "you," or "your") and Oculi Security LLC, a Florida limited
+liability company ("Oculi," "we," "us," or "our"), governing your use of the
+Oculi Security software, including the `oculi` command-line interface, the
+Oculi gateway server, related libraries, binaries, and documentation
+(collectively, the "Software").
+
+BY DOWNLOADING, INSTALLING, OR USING THE SOFTWARE, YOU AGREE TO BE BOUND BY
+THIS AGREEMENT. IF YOU DO NOT AGREE, DO NOT DOWNLOAD, INSTALL, OR USE THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+1. LICENSE GRANT
+
+1.1 Free Use License. Subject to your compliance with this Agreement, Oculi
+grants you a limited, non-exclusive, non-transferable, non-sublicensable,
+revocable license to install and use the Software internally within your
+organization at no cost, provided that:
+
+  (a) your total event volume across all Oculi gateway instances does not
+      exceed 100,000 events per day (the "Free Use Limit"); and
+
+  (b) you do not enable, attempt to enable, or otherwise use any features
+      designated as "Enterprise" features.
+
+1.2 Enterprise License. Use of the Software in excess of the Free Use Limit,
+or use of Enterprise features, requires a separate commercial license
+agreement with Oculi and payment of applicable fees. Contact
+sales@oculisecurity.com.
+
+1.3 Evaluation. You may evaluate Enterprise features for a period of up to
+30 days by requesting an evaluation license key from Oculi. Evaluation use
+is solely for internal assessment and may not be used in production.
+
+--------------------------------------------------------------------------------
+
+2. RESTRICTIONS
+
+You shall not, and shall not permit any third party to:
+
+  (a) copy, modify, or create derivative works of the Software, except as
+      expressly permitted by this Agreement;
+
+  (b) reverse engineer, disassemble, decompile, decode, or otherwise attempt
+      to derive or gain access to the source code of the Software, except to
+      the extent such restriction is prohibited by applicable law;
+
+  (c) rent, lease, lend, sell, sublicense, assign, distribute, publish,
+      transfer, or otherwise make available the Software to any third party;
+
+  (d) use the Software to provide a hosted, managed, or embedded service to
+      third parties whose value derives, entirely or primarily, from the
+      functionality of the Software;
+
+  (e) use the Software to build or train a competitive product or service;
+
+  (f) remove, alter, or obscure any proprietary notices (including copyright
+      and trademark notices) on the Software;
+
+  (g) circumvent, disable, or otherwise interfere with any license
+      enforcement, feature gating, usage measurement, or security mechanism
+      of the Software, including but not limited to license key verification;
+
+  (h) use the Software in violation of applicable law or for any unlawful
+      purpose;
+
+  (i) publish or disclose to any third party the results of any benchmark
+      testing of the Software without Oculi's prior written consent.
+
+--------------------------------------------------------------------------------
+
+3. OWNERSHIP
+
+The Software is licensed, not sold. Oculi and its licensors retain all right,
+title, and interest in and to the Software, including all intellectual
+property rights therein. No rights are granted to you other than as expressly
+set forth in this Agreement. All rights not expressly granted are reserved
+by Oculi.
+
+--------------------------------------------------------------------------------
+
+4. DATA AND PRIVACY
+
+4.1 Customer Data. You retain all rights to data processed by your Oculi
+installation, including hook events, telemetry, audit logs, and policy
+configurations ("Customer Data"). Oculi does not access Customer Data unless
+you explicitly transmit it to us (e.g., via support requests).
+
+4.2 Telemetry. The Software may collect anonymous, aggregated usage data
+(such as version number, feature usage counters, and error reports) to help
+us improve the product. This collection is opt-in and can be disabled at
+any time. No Customer Data is included in telemetry.
+
+4.3 License Verification. For Enterprise installations, the Software performs
+offline license verification using cryptographic signatures. No phone-home
+is required for license validation. The Software may optionally check for
+updates and security advisories; this can be disabled.
+
+--------------------------------------------------------------------------------
+
+5. SUPPORT AND UPDATES
+
+5.1 Free Tier. Free tier users receive community support via public channels
+(Discord, documentation site). No guaranteed response times or SLAs apply.
+
+5.2 Enterprise. Enterprise customers receive support and updates as
+specified in their commercial license agreement.
+
+--------------------------------------------------------------------------------
+
+6. TERM AND TERMINATION
+
+6.1 Term. This Agreement is effective upon your first download, installation,
+or use of the Software and continues until terminated.
+
+6.2 Termination. This Agreement terminates automatically if you breach any
+of its terms. Oculi may terminate this Agreement at any time upon written
+notice (including by email or in-product notification) if you breach this
+Agreement.
+
+6.3 Effect of Termination. Upon termination, you must immediately cease all
+use of the Software and destroy all copies in your possession. Sections 2,
+3, 4, 7, 8, 9, and 10 survive termination.
+
+--------------------------------------------------------------------------------
+
+7. DISCLAIMER OF WARRANTIES
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT,
+OR ARISING FROM A COURSE OF DEALING, USAGE, OR TRADE PRACTICE.
+
+OCULI DOES NOT WARRANT THAT THE SOFTWARE WILL BE UNINTERRUPTED, ERROR-FREE,
+OR FREE OF HARMFUL COMPONENTS, OR THAT ANY DATA WILL BE SECURE OR NOT LOST
+OR ALTERED.
+
+THE SOFTWARE IS A SECURITY TOOL AND IS NOT A SUBSTITUTE FOR INDEPENDENT
+SECURITY REVIEW, COMPLIANCE PROGRAMS, OR PROFESSIONAL JUDGMENT. YOU ARE
+SOLELY RESPONSIBLE FOR THE SECURITY OF YOUR SYSTEMS AND DATA.
+
+--------------------------------------------------------------------------------
+
+8. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL OCULI
+BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE
+DAMAGES, OR FOR ANY LOSS OF PROFITS, REVENUE, DATA, OR USE, ARISING OUT OF
+OR RELATING TO THIS AGREEMENT OR THE SOFTWARE, EVEN IF OCULI HAS BEEN
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+OCULI'S TOTAL CUMULATIVE LIABILITY ARISING OUT OF OR RELATING TO THIS
+AGREEMENT OR THE SOFTWARE SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNTS
+PAID BY YOU TO OCULI IN THE TWELVE MONTHS PRECEDING THE EVENT GIVING RISE
+TO THE CLAIM, OR (B) ONE HUNDRED U.S. DOLLARS (USD $100).
+
+--------------------------------------------------------------------------------
+
+9. GOVERNING LAW AND DISPUTES
+
+This Agreement is governed by the laws of the State of Florida, without
+regard to its conflict of laws principles. Any dispute arising out of or
+relating to this Agreement shall be brought exclusively in the state or
+federal courts located in Hillsborough County, Florida, and you consent to
+the personal jurisdiction of those courts.
+
+--------------------------------------------------------------------------------
+
+10. MISCELLANEOUS
+
+10.1 Entire Agreement. This Agreement constitutes the entire agreement
+between you and Oculi regarding the Software and supersedes all prior or
+contemporaneous agreements, proposals, or representations.
+
+10.2 Modifications. Oculi may modify this Agreement from time to time.
+Material changes will be communicated via the Oculi website or in-product
+notice. Your continued use of the Software after such notice constitutes
+acceptance.
+
+10.3 Severability. If any provision of this Agreement is held to be
+unenforceable, the remaining provisions will continue in full force.
+
+10.4 No Waiver. Oculi's failure to enforce any provision is not a waiver
+of its right to do so later.
+
+10.5 Assignment. You may not assign this Agreement without Oculi's prior
+written consent. Oculi may assign this Agreement freely.
+
+10.6 Export Compliance. You may not use or export the Software in violation
+of U.S. export laws or regulations.
+
+--------------------------------------------------------------------------------
+
+Copyright © 2026 Oculi Security LLC. All rights reserved.
+
+Contact: legal@oculisecurity.com

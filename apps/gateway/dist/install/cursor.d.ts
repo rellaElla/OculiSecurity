@@ -10,4 +10,3 @@ export interface InstallResult {
 }
 export declare function installCursor(opts: InstallOpts): InstallResult;
 export declare function uninstallCursor(opts: InstallOpts): InstallResult;
-//# sourceMappingURL=cursor.d.ts.map

@@ -123,4 +123,3 @@ function registerEventsRoute(app, ctx) {
         reply.code(202).send({ received: events.length });
     });
 }
-//# sourceMappingURL=events.js.map

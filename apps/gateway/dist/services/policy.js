@@ -53,17 +53,20 @@ function fallbackPolicy(input) {
     if (!input.tool) {
         return { allow: false, reason: 'tool not specified' };
     }
-    // 2. Tool must be in allowlist for this upstream
-    // ext:* upstreamIds are hook sources (IDE telemetry/enforcement) — no static
-    // allowlist applies since IDE tool names are arbitrary (Bash, Read, MCP tools, etc.)
+    // 2. Hook sources (IDE events) → always allow at gateway level.
+    // Enforcement is handled by local policy on the client side.
+    // The gateway's role for hooks is audit + centralized policy overlay.
     const isHookSource = input.upstreamId.startsWith('ext:');
-    if (!isHookSource) {
-        const allowed = TOOL_ALLOWLISTS[input.upstreamId];
-        if (!allowed || !allowed.has(input.tool)) {
-            return { allow: false, reason: 'tool not in allowlist for this upstream' };
-        }
+    if (isHookSource) {
+        return { allow: true, reason: 'allowed', redactions: {}, maxArgsSize: 102400 };
     }
-    // 3. Dangerous argument patterns
+    // ── Everything below applies only to MCP upstream proxy calls ──
+    // 3. Tool must be in allowlist for this upstream
+    const allowed = TOOL_ALLOWLISTS[input.upstreamId];
+    if (!allowed || !allowed.has(input.tool)) {
+        return { allow: false, reason: 'tool not in allowlist for this upstream' };
+    }
+    // 4. Dangerous argument patterns
     for (const [key, val] of Object.entries(input.args)) {
         if (typeof val === 'string') {
             for (const pattern of DANGEROUS_PATTERNS) {
@@ -76,7 +79,7 @@ function fallbackPolicy(input) {
             }
         }
     }
-    // 4. Role restriction for write tools
+    // 5. Role restriction for write tools
     if (WRITE_TOOLS.has(input.tool)) {
         const hasWritePermission = input.roles.includes('admin') || input.roles.includes('editor');
         if (!hasWritePermission) {
@@ -121,4 +124,3 @@ class PolicyService {
     }
 }
 exports.PolicyService = PolicyService;
-//# sourceMappingURL=policy.js.map

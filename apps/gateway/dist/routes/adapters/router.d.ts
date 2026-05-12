@@ -29,4 +29,3 @@ export declare function route(body: Record<string, unknown>, explicit?: string):
 export declare function routeStdin(stdin: string, explicitName?: string): RouteResult | null;
 /** Returns the canonical names of all registered adapters. */
 export declare function registeredAdapters(): string[];
-//# sourceMappingURL=router.d.ts.map

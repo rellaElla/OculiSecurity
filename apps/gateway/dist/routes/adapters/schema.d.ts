@@ -139,4 +139,3 @@ export declare const OculiEventSchema: z.ZodObject<{
     } | undefined;
 }>;
 export type OculiEvent = z.infer<typeof OculiEventSchema>;
-//# sourceMappingURL=schema.d.ts.map

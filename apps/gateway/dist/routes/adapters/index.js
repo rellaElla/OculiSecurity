@@ -54,4 +54,3 @@ function detectAdapter(body) {
     }
     return null;
 }
-//# sourceMappingURL=index.js.map

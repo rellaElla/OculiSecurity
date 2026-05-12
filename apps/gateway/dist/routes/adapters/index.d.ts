@@ -12,4 +12,3 @@ export interface HookAdapter {
  * Returns null if no adapter matches (unknown source).
  */
 export declare function detectAdapter(body: Record<string, unknown>): HookAdapter | null;
-//# sourceMappingURL=index.d.ts.map

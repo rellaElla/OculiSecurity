@@ -51,4 +51,3 @@ function runInit(templateName, opts = {}) {
     fs.writeFileSync(policyPath, local_policy_templates_1.templates[template], 'utf8');
     return { path: policyPath, created: true, template };
 }
-//# sourceMappingURL=init.js.map

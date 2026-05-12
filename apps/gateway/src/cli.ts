@@ -17,6 +17,8 @@
  *   GATEWAY_TOKEN  Bearer token for gateway auth  (optional)
  */
 
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { routeStdin, registeredAdapters } from './routes/adapters/router';
 import { installCursor, uninstallCursor } from './install/cursor';
 import { installClaudeCode, uninstallClaudeCode } from './install/claude-code';
@@ -27,7 +29,159 @@ import { TEMPLATE_NAMES } from './services/local-policy-templates';
 import { runTail, TailOptions } from './commands/tail';
 import { runReport, ReportOptions } from './commands/report';
 
+// ── version + help text ───────────────────────────────────────────────────────
+
+let cachedVersion: string | null = null;
+function getVersion(): string {
+  if (cachedVersion !== null) return cachedVersion;
+  try {
+    const pkgPath = join(__dirname, '..', 'package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: string };
+    cachedVersion = pkg.version ?? 'unknown';
+  } catch {
+    cachedVersion = 'unknown';
+  }
+  return cachedVersion;
+}
+
+const TOP_LEVEL_HELP = `oculi — security layer for AI coding agents
+
+Usage:
+  oculi <command> [options]
+
+Commands:
+  init <template>          Create .oculi/policy.yaml (templates: minimal, standard)
+  install <target>         Install hooks for an IDE (targets: claude-code, cursor)
+  uninstall <target>       Remove hooks for an IDE
+  emit [adapter]           Process a hook event from stdin (called by IDEs)
+  tail [--filter <kind>]   Live-stream telemetry log
+  report [--json] [--hours N]   Summarize recent events
+
+Run \`oculi <command> --help\` for command-specific help.
+
+Environment variables:
+  GATEWAY_URL              Gateway URL for hook forwarding (default: http://localhost:3000)
+  GATEWAY_TOKEN            Bearer token for gateway auth (optional)
+  NO_COLOR                 Disable ANSI colors in tail output
+
+Documentation: https://docs.oculisecurity.com
+`;
+
+const INIT_HELP = `oculi init — create a local policy file
+
+Usage:
+  oculi init <template>
+
+Templates:
+  minimal     Empty rule set; nothing blocked
+  standard    Common safety rules (deny rm -rf, warn on .env/MCP access)
+
+Writes .oculi/policy.yaml in the current directory. If the file already
+exists, prints a notice and exits 0 without overwriting.
+
+Example:
+  oculi init standard
+`;
+
+const INSTALL_HELP = `oculi install — install hooks into an IDE
+
+Usage:
+  oculi install <target> [--global] [--dry-run]
+
+Targets:
+  claude-code    Merge hooks into .claude/settings.json
+  cursor         Merge hooks into .cursor/hooks.json
+
+Options:
+  --global       Install into ~/.<target>/ instead of project-local
+  --dry-run      Print what would change without writing files
+
+Idempotent: running twice is a no-op the second time. Existing user-authored
+hooks are preserved.
+
+Example:
+  oculi install claude-code
+`;
+
+const UNINSTALL_HELP = `oculi uninstall — remove hooks from an IDE
+
+Usage:
+  oculi uninstall <target> [--global] [--dry-run]
+
+Targets:
+  claude-code    Remove oculi hooks from .claude/settings.json
+  cursor         Remove oculi hooks from .cursor/hooks.json
+
+Options:
+  --global       Operate on ~/.<target>/ instead of project-local
+  --dry-run      Print what would change without writing files
+
+Removes only the entries oculi added; other hooks are preserved.
+
+Example:
+  oculi uninstall claude-code
+`;
+
+const EMIT_HELP = `oculi emit — process a hook event from stdin
+
+Reads a hook payload from stdin, evaluates local policy, forwards to the
+gateway, and logs telemetry. Invoked by IDE hook commands; rarely run
+directly.
+
+Usage:
+  oculi emit [adapter]
+  oculi emit --adapter <name>
+
+Adapters:
+  claude-code, cursor, windsurf
+  (auto-detected from payload if not specified)
+
+Exit codes:
+  0   allowed
+  1   denied by gateway, or usage/network error
+  2   denied by local policy
+
+Example:
+  echo '{"hook_event_name":"PreToolUse",...}' | oculi emit claude-code
+`;
+
+const TAIL_HELP = `oculi tail — live-stream the telemetry log
+
+Reads .oculi/telemetry.jsonl from the nearest project directory (walking
+up) or ~/.oculi/telemetry.jsonl, prints recent entries, and watches for
+new appends. SIGINT to exit.
+
+Usage:
+  oculi tail [--filter <kind>] [--no-color]
+
+Options:
+  --filter <kind>   Show only entries with decision: allow | warn | deny
+  --no-color        Disable ANSI colors (also: NO_COLOR env var)
+
+Example:
+  oculi tail --filter deny
+`;
+
+const REPORT_HELP = `oculi report — summarize recent telemetry
+
+Aggregates entries from the telemetry log over a time window.
+
+Usage:
+  oculi report [--json] [--hours N]
+
+Options:
+  --json           JSON output instead of human-readable
+  --hours N        Time window in hours (default: 24)
+
+Example:
+  oculi report --hours 168 --json
+`;
+
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+function hasHelpFlag(argv: string[]): boolean {
+  return argv.includes('--help') || argv.includes('-h');
+}
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -57,6 +211,10 @@ function logTelemetry(
 }
 
 async function runEmit(argv: string[]): Promise<void> {
+  if (hasHelpFlag(argv)) {
+    process.stdout.write(EMIT_HELP);
+    process.exit(0);
+  }
   const stdin = await readStdin();
   if (!stdin) {
     process.stderr.write('oculi: no input on stdin\n');
@@ -184,6 +342,10 @@ function parseInstallArgs(argv: string[]): { target: Target; global: boolean; dr
 }
 
 async function runInstall(argv: string[]): Promise<void> {
+  if (hasHelpFlag(argv)) {
+    process.stdout.write(INSTALL_HELP);
+    process.exit(0);
+  }
   const { target, global: isGlobal, dryRun } = parseInstallArgs(argv);
   const opts = { global: isGlobal, dryRun };
 
@@ -204,6 +366,10 @@ async function runInstall(argv: string[]): Promise<void> {
 }
 
 async function runUninstall(argv: string[]): Promise<void> {
+  if (hasHelpFlag(argv)) {
+    process.stdout.write(UNINSTALL_HELP);
+    process.exit(0);
+  }
   const { target, global: isGlobal, dryRun } = parseInstallArgs(argv);
   const opts = { global: isGlobal, dryRun };
 
@@ -226,6 +392,10 @@ async function runUninstall(argv: string[]): Promise<void> {
 // ── init ─────────────────────────────────────────────────────────────────────
 
 function runInitCommand(argv: string[]): void {
+  if (hasHelpFlag(argv)) {
+    process.stdout.write(INIT_HELP);
+    process.exit(0);
+  }
   const templateName = argv[0];
 
   if (!templateName) {
@@ -253,6 +423,10 @@ function runInitCommand(argv: string[]): void {
 // ── tail ─────────────────────────────────────────────────────────────────────
 
 function runTailCommand(argv: string[]): void {
+  if (hasHelpFlag(argv)) {
+    process.stdout.write(TAIL_HELP);
+    process.exit(0);
+  }
   const filterIdx = argv.indexOf('--filter');
   let filter: TailOptions['filter'];
   if (filterIdx !== -1) {
@@ -271,6 +445,10 @@ function runTailCommand(argv: string[]): void {
 // ── report ───────────────────────────────────────────────────────────────────
 
 function runReportCommand(argv: string[]): void {
+  if (hasHelpFlag(argv)) {
+    process.stdout.write(REPORT_HELP);
+    process.exit(0);
+  }
   const hoursIdx = argv.indexOf('--hours');
   let hours = 24;
   if (hoursIdx !== -1) {
@@ -289,6 +467,19 @@ function runReportCommand(argv: string[]): void {
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const [subcmd, ...rest] = argv;
+
+  if (subcmd === '--help' || subcmd === '-h') {
+    process.stdout.write(TOP_LEVEL_HELP);
+    process.exit(0);
+  }
+  if (subcmd === '--version' || subcmd === '-v') {
+    process.stdout.write(`${getVersion()}\n`);
+    process.exit(0);
+  }
+  if (subcmd && subcmd.startsWith('-')) {
+    process.stderr.write(`oculi: unknown option '${subcmd}'. Run \`oculi --help\` for usage.\n`);
+    process.exit(1);
+  }
 
   if (!subcmd || subcmd === 'emit') {
     await runEmit(rest);

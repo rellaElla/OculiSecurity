@@ -16,4 +16,3 @@ export declare class UpstreamError extends Error {
     readonly latencyMs: number;
     constructor(message: string, statusCode: number, latencyMs: number);
 }
-//# sourceMappingURL=upstream.d.ts.map

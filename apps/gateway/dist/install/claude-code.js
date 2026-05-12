@@ -107,4 +107,3 @@ function uninstallClaudeCode(opts) {
     }
     return { path: configPath, added: [], removed };
 }
-//# sourceMappingURL=claude-code.js.map

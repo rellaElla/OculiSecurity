@@ -8,4 +8,3 @@ export interface InitResult {
     template: TemplateName;
 }
 export declare function runInit(templateName: string, opts?: InitOpts): InitResult;
-//# sourceMappingURL=init.d.ts.map

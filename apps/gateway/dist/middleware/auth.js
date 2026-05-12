@@ -39,6 +39,7 @@ function registerAuthMiddleware(app, jwtSecret) {
         // API routes enforce auth themselves via request.actor checks.
         if (request.url === '/health' ||
             request.url === '/favicon.ico' ||
+            request.url === '/favicon.svg' ||
             request.url === '/v1/events' ||
             request.url === '/v1/hooks') {
             return;
@@ -46,7 +47,7 @@ function registerAuthMiddleware(app, jwtSecret) {
         // For /admin and /mcp routes: parse JWT if present but don't require it.
         // /admin static assets need no auth; API routes check request.actor internally.
         // /mcp handles auth inside the route (also accepts ?token= for SSE browser connections).
-        if (request.url.startsWith('/admin') || request.url.startsWith('/mcp')) {
+        if (request.url.startsWith('/admin') || request.url.startsWith('/api/admin') || request.url.startsWith('/mcp')) {
             const header = request.headers['authorization'];
             if (header?.startsWith('Bearer ')) {
                 try {
@@ -100,4 +101,3 @@ function registerAuthMiddleware(app, jwtSecret) {
         };
     });
 }
-//# sourceMappingURL=auth.js.map

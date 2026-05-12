@@ -46,4 +46,3 @@ function formatDeny(reason) {
 function denyStatusCode() {
     return 403; // Windsurf uses HTTP 403 to signal a block
 }
-//# sourceMappingURL=windsurf.js.map

@@ -7,4 +7,3 @@ interface OpenAIToolsRouteContext {
 }
 export declare function registerOpenAIToolsRoutes(app: FastifyInstance, ctx: OpenAIToolsRouteContext): void;
 export {};
-//# sourceMappingURL=openai-tools.d.ts.map

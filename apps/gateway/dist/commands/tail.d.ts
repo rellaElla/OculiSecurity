@@ -5,4 +5,3 @@ export interface TailOptions {
     noColor?: boolean;
 }
 export declare function runTail(opts: TailOptions): void;
-//# sourceMappingURL=tail.d.ts.map

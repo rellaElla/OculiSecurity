@@ -32,7 +32,24 @@ class PolicyStore {
         isActive    INTEGER NOT NULL DEFAULT 1
       )
     `);
+        this.db.exec(`
+      CREATE TABLE IF NOT EXISTS visual_rules (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        rule_id         TEXT NOT NULL UNIQUE,
+        tool            TEXT,
+        command_pattern TEXT,
+        file_pattern    TEXT,
+        mcp_server      TEXT,
+        action          TEXT NOT NULL CHECK(action IN ('deny','warn','allow')),
+        description     TEXT NOT NULL DEFAULT '',
+        enabled         INTEGER NOT NULL DEFAULT 1,
+        priority        INTEGER NOT NULL DEFAULT 0,
+        createdAt       TEXT NOT NULL,
+        updatedAt       TEXT NOT NULL
+      )
+    `);
         this.seed();
+        this.seedVisualRules();
     }
     seed() {
         const count = this.db.prepare('SELECT COUNT(*) as cnt FROM policies').get();
@@ -67,7 +84,7 @@ allow {
     input.tool == "listDir"
 }`,
                 updatedAt: '2026-02-25T10:30:00.000Z',
-                updatedBy: 'admin@oculi.security',
+                updatedBy: 'admin@oculisecurity.com',
                 createdAt: '2026-01-15T08:00:00.000Z',
             },
             {
@@ -154,7 +171,7 @@ role_restricted if {
     not "editor" in input.roles
 }`,
                 updatedAt: '2026-02-24T15:45:00.000Z',
-                updatedBy: 'security@oculi.security',
+                updatedBy: 'security@oculisecurity.com',
                 createdAt: '2026-01-10T09:00:00.000Z',
             },
             {
@@ -198,7 +215,7 @@ redactions := {
 
 max_args_size := 51200`,
                 updatedAt: '2026-02-23T09:20:00.000Z',
-                updatedBy: 'devops@oculi.security',
+                updatedBy: 'devops@oculisecurity.com',
                 createdAt: '2026-01-20T14:00:00.000Z',
             },
         ];
@@ -251,9 +268,63 @@ max_args_size := 51200`,
         const result = this.db.prepare('DELETE FROM policies WHERE id = ?').run(id);
         return result.changes > 0;
     }
+    // ── Visual Rules ──────────────────────────────────────────────────────────
+    seedVisualRules() {
+        const count = this.db.prepare('SELECT COUNT(*) as cnt FROM visual_rules').get();
+        if (count.cnt > 0)
+            return;
+        const now = new Date().toISOString();
+        const insert = this.db.prepare(`
+      INSERT INTO visual_rules (rule_id, tool, command_pattern, file_pattern, mcp_server, action, description, enabled, priority, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+    `);
+        const seeds = [
+            { rule_id: 'no-rm-rf', tool: 'shell', command_pattern: 'rm\\s+-rf', file_pattern: null, mcp_server: null, action: 'deny', description: 'Block recursive force-delete commands', priority: 100 },
+            { rule_id: 'no-path-traversal', tool: 'shell', command_pattern: '\\.\\./', file_pattern: null, mcp_server: null, action: 'deny', description: 'Block path traversal in shell commands', priority: 90 },
+            { rule_id: 'warn-env-access', tool: 'file_read', command_pattern: null, file_pattern: '\\.env', mcp_server: null, action: 'warn', description: 'Warn when reading .env files', priority: 50 },
+            { rule_id: 'warn-env-edit', tool: 'file_edit', command_pattern: null, file_pattern: '\\.env', mcp_server: null, action: 'warn', description: 'Warn when editing .env files', priority: 50 },
+            { rule_id: 'warn-mcp', tool: 'mcp_call', command_pattern: null, file_pattern: null, mcp_server: null, action: 'warn', description: 'Warn on all MCP tool calls', priority: 10 },
+        ];
+        const insertMany = this.db.transaction(() => {
+            for (const s of seeds) {
+                insert.run(s.rule_id, s.tool, s.command_pattern, s.file_pattern, s.mcp_server, s.action, s.description, s.priority, now, now);
+            }
+        });
+        insertMany();
+    }
+    listVisualRules() {
+        return this.db.prepare('SELECT * FROM visual_rules ORDER BY priority DESC, id ASC').all();
+    }
+    getVisualRuleById(id) {
+        return this.db.prepare('SELECT * FROM visual_rules WHERE id = ?').get(id);
+    }
+    createVisualRule(input) {
+        const now = new Date().toISOString();
+        const result = this.db.prepare(`
+      INSERT INTO visual_rules (rule_id, tool, command_pattern, file_pattern, mcp_server, action, description, enabled, priority, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(input.rule_id, input.tool ?? null, input.command_pattern ?? null, input.file_pattern ?? null, input.mcp_server ?? null, input.action, input.description ?? '', input.enabled ?? 1, input.priority ?? 0, now, now);
+        return this.getVisualRuleById(Number(result.lastInsertRowid));
+    }
+    updateVisualRule(id, input) {
+        const existing = this.getVisualRuleById(id);
+        if (!existing)
+            return undefined;
+        const now = new Date().toISOString();
+        this.db.prepare(`
+      UPDATE visual_rules
+      SET rule_id = ?, tool = ?, command_pattern = ?, file_pattern = ?, mcp_server = ?,
+          action = ?, description = ?, enabled = ?, priority = ?, updatedAt = ?
+      WHERE id = ?
+    `).run(input.rule_id ?? existing.rule_id, input.tool !== undefined ? input.tool : existing.tool, input.command_pattern !== undefined ? input.command_pattern : existing.command_pattern, input.file_pattern !== undefined ? input.file_pattern : existing.file_pattern, input.mcp_server !== undefined ? input.mcp_server : existing.mcp_server, input.action ?? existing.action, input.description ?? existing.description, input.enabled !== undefined ? input.enabled : existing.enabled, input.priority !== undefined ? input.priority : existing.priority, now, id);
+        return this.getVisualRuleById(id);
+    }
+    deleteVisualRule(id) {
+        const result = this.db.prepare('DELETE FROM visual_rules WHERE id = ?').run(id);
+        return result.changes > 0;
+    }
     close() {
         this.db.close();
     }
 }
 exports.PolicyStore = PolicyStore;
-//# sourceMappingURL=policy-store.js.map

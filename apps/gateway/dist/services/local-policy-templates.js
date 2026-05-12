@@ -7,7 +7,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.templates = exports.TEMPLATE_NAMES = void 0;
-exports.TEMPLATE_NAMES = ['minimal', 'standard', 'strict'];
+exports.TEMPLATE_NAMES = ['minimal', 'standard'];
 exports.templates = {
     // ── Minimal: log-only, no blocking ──────────────────────────────────────────
     minimal: `# Oculi local policy — minimal (log-only)
@@ -73,55 +73,4 @@ rules:
       tool: mcp_call
     action: warn
 `,
-    // ── Strict: allowlist-only ──────────────────────────────────────────────────
-    strict: `# Oculi local policy — strict (allowlist-only)
-#
-# Denies everything by default, then explicitly allows safe operations.
-# Precedence: deny > warn > allow — the catch-all deny only applies
-# when no higher-precedence allow rule matches for the specific tool.
-
-rules:
-  # Catch-all: deny any tool not explicitly allowed below
-  - id: "deny-all"
-    match:
-      tool: shell
-    action: deny
-
-  - id: "deny-all-mcp"
-    match:
-      tool: mcp_call
-    action: deny
-
-  # Allow file reads (but warn on .env)
-  - id: "allow-file-read"
-    match:
-      tool: file_read
-    action: allow
-
-  - id: "warn-env-read"
-    match:
-      tool: file_read
-      file_pattern: "\\\\.env"
-    action: warn
-
-  # Allow file edits (but warn on .env)
-  - id: "allow-file-edit"
-    match:
-      tool: file_edit
-    action: allow
-
-  - id: "deny-env-edit"
-    match:
-      tool: file_edit
-      file_pattern: "\\\\.env"
-    action: deny
-
-  # Allow safe shell commands only
-  - id: "allow-safe-shell"
-    match:
-      tool: shell
-      command_pattern: "^(ls|cat|head|tail|wc|grep|find|echo|pwd|date|git\\\\s+(status|log|diff|branch|show))\\\\b"
-    action: allow
-`,
 };
-//# sourceMappingURL=local-policy-templates.js.map

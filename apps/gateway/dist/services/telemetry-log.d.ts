@@ -57,4 +57,3 @@ export declare function readTelemetryLines(logPath: string, opts?: ReadOptions):
  * Get the path to the telemetry log file (creating .oculi/ dir if needed).
  */
 export declare function getTelemetryLogPath(oculiDir?: string): string;
-//# sourceMappingURL=telemetry-log.d.ts.map

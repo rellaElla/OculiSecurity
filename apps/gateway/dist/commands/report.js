@@ -143,4 +143,3 @@ function runReport(opts) {
         process.stdout.write(formatReport(report));
     }
 }
-//# sourceMappingURL=report.js.map

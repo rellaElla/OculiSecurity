@@ -59,6 +59,13 @@ async function buildServer(config) {
     // Periodically clean up stale rate-limit buckets
     const cleanupInterval = setInterval(() => rateLimiter.cleanup(), 60_000);
     cleanupInterval.unref(); // don't prevent process exit
+    // Serve favicon at root for browsers
+    app.get('/favicon.svg', (_req, reply) => {
+        reply.type('image/svg+xml').sendFile('favicon.svg');
+    });
+    app.get('/favicon.ico', (_req, reply) => {
+        reply.type('image/svg+xml').sendFile('favicon.svg');
+    });
     // -----------------------------------------------------------------------
     // Auth middleware (all routes except /health and /admin static)
     // -----------------------------------------------------------------------
@@ -75,9 +82,13 @@ async function buildServer(config) {
     (0, events_1.registerEventsRoute)(app, { audit });
     (0, hooks_1.registerHooksRoute)(app, { policy, audit, rateLimiter });
     // -----------------------------------------------------------------------
-    // 404 handler
+    // 404 handler — SPA catch-all for /admin/* paths
     // -----------------------------------------------------------------------
-    app.setNotFoundHandler((_req, reply) => {
+    app.setNotFoundHandler((req, reply) => {
+        if (req.method === 'GET' && req.url.startsWith('/admin/')) {
+            reply.type('text/html').sendFile('index.html');
+            return;
+        }
         reply.code(404).send({ error: 'Not found' });
     });
     // -----------------------------------------------------------------------
@@ -103,4 +114,3 @@ async function buildServer(config) {
         },
     };
 }
-//# sourceMappingURL=server.js.map

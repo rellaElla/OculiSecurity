@@ -71,4 +71,3 @@ function applyTransform(value, transform) {
             return value;
     }
 }
-//# sourceMappingURL=sanitizer.js.map

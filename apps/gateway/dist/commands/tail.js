@@ -209,4 +209,3 @@ function runTail(opts) {
         process.exit(0);
     });
 }
-//# sourceMappingURL=tail.js.map

@@ -13,4 +13,3 @@ interface AdminRouteContext {
 }
 export declare function registerAdminRoutes(app: FastifyInstance, ctx: AdminRouteContext): void;
 export {};
-//# sourceMappingURL=admin.d.ts.map

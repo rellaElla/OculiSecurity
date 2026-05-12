@@ -95,4 +95,3 @@ function formatDeny(reason) {
 function denyStatusCode() {
     return 200; // Claude Code reads the JSON body; HTTP status is always 200
 }
-//# sourceMappingURL=claude-code.js.map

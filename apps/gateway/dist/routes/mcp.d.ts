@@ -8,4 +8,3 @@ interface McpRouteContext {
 }
 export declare function registerMcpRoutes(app: FastifyInstance, ctx: McpRouteContext): void;
 export {};
-//# sourceMappingURL=mcp.d.ts.map

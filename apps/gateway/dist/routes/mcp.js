@@ -168,4 +168,3 @@ function registerMcpRoutes(app, ctx) {
         }
     });
 }
-//# sourceMappingURL=mcp.js.map

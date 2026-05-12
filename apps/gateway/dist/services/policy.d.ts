@@ -6,4 +6,3 @@ export declare class PolicyService {
     constructor(config: AppConfig);
     evaluate(input: PolicyInput): Promise<PolicyDecision>;
 }
-//# sourceMappingURL=policy.d.ts.map

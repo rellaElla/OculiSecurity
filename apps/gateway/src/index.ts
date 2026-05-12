@@ -1,4 +1,4 @@
-import { loadConfig } from './config';
+import { loadConfig, ConfigValidationError } from './config';
 import { buildServer } from './server';
 
 async function main() {
@@ -27,6 +27,10 @@ async function main() {
 }
 
 main().catch((err) => {
+  if (err instanceof ConfigValidationError) {
+    console.error(err.message);
+    process.exit(1);
+  }
   console.error('[gateway] Fatal error:', err);
   process.exit(1);
 });

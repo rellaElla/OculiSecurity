@@ -17,4 +17,3 @@
  *   GATEWAY_TOKEN  Bearer token for gateway auth  (optional)
  */
 export {};
-//# sourceMappingURL=cli.d.ts.map

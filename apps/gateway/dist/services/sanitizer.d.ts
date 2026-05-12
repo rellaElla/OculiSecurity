@@ -7,4 +7,3 @@ import { PolicyDecision } from '../types';
  * - transforms: apply truncation, masking, or removal to specific fields
  */
 export declare function sanitizeResponse(payload: unknown, decision: PolicyDecision): unknown;
-//# sourceMappingURL=sanitizer.d.ts.map

@@ -137,4 +137,3 @@ function formatDeny(reason) {
 function denyStatusCode() {
     return 200; // Cursor reads permissionDecision from the JSON body
 }
-//# sourceMappingURL=cursor.js.map

@@ -31,4 +31,3 @@ export interface ReportOptions {
     hours: number;
 }
 export declare function runReport(opts: ReportOptions): void;
-//# sourceMappingURL=report.d.ts.map

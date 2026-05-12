@@ -5,4 +5,3 @@ interface EventsRouteContext {
 }
 export declare function registerEventsRoute(app: FastifyInstance, ctx: EventsRouteContext): void;
 export {};
-//# sourceMappingURL=events.d.ts.map

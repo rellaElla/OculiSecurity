@@ -203,4 +203,3 @@ function getTelemetryLogPath(oculiDir) {
     const dir = oculiDir ?? findOrCreateOculiDir();
     return path.join(dir, LOG_FILENAME);
 }
-//# sourceMappingURL=telemetry-log.js.map

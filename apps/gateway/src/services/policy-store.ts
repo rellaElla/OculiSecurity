@@ -153,7 +153,7 @@ allow {
     input.tool == "listDir"
 }`,
         updatedAt: '2026-02-25T10:30:00.000Z',
-        updatedBy: 'admin@oculi.security',
+        updatedBy: 'admin@oculisecurity.com',
         createdAt: '2026-01-15T08:00:00.000Z',
       },
       {
@@ -240,7 +240,7 @@ role_restricted if {
     not "editor" in input.roles
 }`,
         updatedAt: '2026-02-24T15:45:00.000Z',
-        updatedBy: 'security@oculi.security',
+        updatedBy: 'security@oculisecurity.com',
         createdAt: '2026-01-10T09:00:00.000Z',
       },
       {
@@ -284,7 +284,7 @@ redactions := {
 
 max_args_size := 51200`,
         updatedAt: '2026-02-23T09:20:00.000Z',
-        updatedBy: 'devops@oculi.security',
+        updatedBy: 'devops@oculisecurity.com',
         createdAt: '2026-01-20T14:00:00.000Z',
       },
     ];

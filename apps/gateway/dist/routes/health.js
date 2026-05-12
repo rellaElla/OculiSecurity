@@ -10,4 +10,3 @@ function registerHealthRoutes(app) {
         });
     });
 }
-//# sourceMappingURL=health.js.map

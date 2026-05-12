@@ -70,4 +70,3 @@ class UpstreamError extends Error {
     }
 }
 exports.UpstreamError = UpstreamError;
-//# sourceMappingURL=upstream.js.map

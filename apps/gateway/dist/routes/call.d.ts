@@ -11,4 +11,3 @@ interface CallRouteContext {
 }
 export declare function registerCallRoutes(app: FastifyInstance, ctx: CallRouteContext): void;
 export {};
-//# sourceMappingURL=call.d.ts.map

@@ -71,4 +71,3 @@ export declare class AuditService {
     };
     close(): void;
 }
-//# sourceMappingURL=audit.d.ts.map

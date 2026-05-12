@@ -9,4 +9,3 @@ export interface GatewayServer {
     close: () => Promise<void>;
 }
 export declare function buildServer(config: AppConfig): Promise<GatewayServer>;
-//# sourceMappingURL=server.d.ts.map

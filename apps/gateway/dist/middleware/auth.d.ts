@@ -13,4 +13,3 @@ declare module 'fastify' {
     }
 }
 export declare function registerAuthMiddleware(app: FastifyInstance, jwtSecret: string): void;
-//# sourceMappingURL=auth.d.ts.map

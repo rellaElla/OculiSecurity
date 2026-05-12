@@ -110,4 +110,3 @@ function uninstallCursor(opts) {
     }
     return { path: configPath, added: [], removed };
 }
-//# sourceMappingURL=cursor.js.map

@@ -65,11 +65,37 @@ function loadUpstreams(): UpstreamConfig[] {
   });
 }
 
+export class ConfigValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigValidationError';
+  }
+}
+
+const JWT_SECRET_REQUIRED =
+  'JWT_SECRET environment variable is required for the gateway server.\n' +
+  '\n' +
+  'The gateway uses JWT_SECRET to verify tokens issued by your upstream\n' +
+  'authentication provider. It must match the secret your issuer uses to\n' +
+  'sign tokens, and must be at least 32 characters of high-entropy data.\n' +
+  '\n' +
+  'Generate a new secret with:\n' +
+  '  openssl rand -hex 32\n' +
+  '\n' +
+  'See https://docs.oculisecurity.com/gateway/configuration for details.';
+
+function requireJwtSecret(): string {
+  const v = process.env.JWT_SECRET;
+  if (!v || v.length < 32) {
+    throw new ConfigValidationError(JWT_SECRET_REQUIRED);
+  }
+  return v;
+}
+
 export function loadConfig(): AppConfig {
   return {
     port: parseInt(process.env.PORT ?? '3000', 10),
-    jwtSecret:
-      process.env.JWT_SECRET ?? 'dev-secret-change-in-production-min32chars!!',
+    jwtSecret: requireJwtSecret(),
     opaUrl: process.env.OPA_URL ?? 'http://localhost:8181',
     opaEnabled: process.env.OPA_ENABLED !== 'false',
     dbPath:

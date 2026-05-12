@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ConfigValidationError = void 0;
 exports.loadConfig = loadConfig;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
@@ -49,10 +50,34 @@ function loadUpstreams() {
         };
     });
 }
+class ConfigValidationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ConfigValidationError';
+    }
+}
+exports.ConfigValidationError = ConfigValidationError;
+const JWT_SECRET_REQUIRED = 'JWT_SECRET environment variable is required for the gateway server.\n' +
+    '\n' +
+    'The gateway uses JWT_SECRET to verify tokens issued by your upstream\n' +
+    'authentication provider. It must match the secret your issuer uses to\n' +
+    'sign tokens, and must be at least 32 characters of high-entropy data.\n' +
+    '\n' +
+    'Generate a new secret with:\n' +
+    '  openssl rand -hex 32\n' +
+    '\n' +
+    'See https://docs.oculisecurity.com/gateway/configuration for details.';
+function requireJwtSecret() {
+    const v = process.env.JWT_SECRET;
+    if (!v || v.length < 32) {
+        throw new ConfigValidationError(JWT_SECRET_REQUIRED);
+    }
+    return v;
+}
 function loadConfig() {
     return {
         port: parseInt(process.env.PORT ?? '3000', 10),
-        jwtSecret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production-min32chars!!',
+        jwtSecret: requireJwtSecret(),
         opaUrl: process.env.OPA_URL ?? 'http://localhost:8181',
         opaEnabled: process.env.OPA_ENABLED !== 'false',
         dbPath: process.env.DB_PATH ?? path_1.default.join(process.cwd(), 'data', 'audit.db'),
@@ -63,4 +88,3 @@ function loadConfig() {
         logLevel: process.env.LOG_LEVEL ?? 'info',
     };
 }
-//# sourceMappingURL=config.js.map

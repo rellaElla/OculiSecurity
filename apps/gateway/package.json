@@ -1,20 +1,47 @@
 {
-  "name": "@oculi-security/gateway",
+  "name": "@oculisecurity/cli",
   "version": "0.1.0",
-  "description": "Oculi Security Gateway — policy-enforcing reverse proxy for MCP tool calls",
-  "private": true,
+  "description": "Security layer for AI coding agents. Visibility, policy enforcement, and audit trails for Claude Code, Cursor, and Windsurf.",
+  "main": "dist/index.js",
   "bin": {
     "oculi": "dist/cli.js"
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE.txt"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "postbuild": "chmod +x dist/cli.js",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "tsc --noEmit",
-    "hook": "tsx src/cli.ts"
+    "hook": "tsx src/cli.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai-security",
+    "claude-code",
+    "cursor",
+    "windsurf",
+    "policy-enforcement",
+    "audit",
+    "hooks",
+    "agent-security",
+    "mcp"
+  ],
+  "author": "Oculi Security LLC <alex@oculisecurity.com> (https://oculisecurity.com)",
+  "homepage": "https://oculisecurity.com",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",

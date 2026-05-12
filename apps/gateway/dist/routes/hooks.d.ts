@@ -9,4 +9,3 @@ interface HooksRouteContext {
 }
 export declare function registerHooksRoute(app: FastifyInstance, ctx: HooksRouteContext): void;
 export {};
-//# sourceMappingURL=hooks.d.ts.map
