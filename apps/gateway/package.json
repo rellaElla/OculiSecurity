@@ -48,19 +48,20 @@
     "@fastify/cors": "^9.0.1",
     "@fastify/static": "^7.0.4",
     "axios": "^1.7.2",
-    "better-sqlite3": "^9.6.0",
     "fastify": "^4.28.1",
     "jsonwebtoken": "^9.0.2",
-    "uuid": "^10.0.0",
+    "uuid": "^11.1.1",
     "yaml": "^2.4.5",
     "zod": "^3.25.76"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^9.6.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.10",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.10",
     "@types/supertest": "^6.0.2",
-    "@types/uuid": "^10.0.0",
     "@vitest/coverage-v8": "^1.6.0",
     "supertest": "^7.0.0",
     "tsx": "^4.16.2",
