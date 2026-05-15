@@ -227,36 +227,6 @@
       stroke-width: 2;
     }
 
-    .search-bar {
-      flex: 0 1 380px;
-      display: flex;
-      align-items: center;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 7px 12px;
-      gap: 8px;
-    }
-
-    .search-bar svg {
-      width: 16px;
-      height: 16px;
-      stroke: var(--text-muted);
-      fill: none;
-      stroke-width: 2;
-    }
-
-    .search-bar input {
-      background: none;
-      border: none;
-      color: var(--text-primary);
-      font-size: 0.85rem;
-      width: 100%;
-      outline: none;
-    }
-
-    .search-bar input::placeholder { color: var(--text-muted); }
-
     .topbar-spacer { flex: 1; }
 
 
@@ -1610,11 +1580,6 @@
       <div class="org-selector">
         Oculi Security
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-
-      <div class="search-bar">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" placeholder="Search tool / actor / upstream..." />
       </div>
 
       <div class="topbar-spacer"></div>
