@@ -136,7 +136,7 @@ describe('RouteResult', () => {
 
   it('adapter.formatAllow() returns a non-empty string', () => {
     const result = route(CC_PAYLOAD)!;
-    expect(JSON.parse(result.adapter.formatAllow())).toBeTruthy();
+    expect(JSON.parse(result.adapter.formatAllow(result.event))).toBeTruthy();
   });
 
   it('adapter.denyStatusCode() returns 200 for Claude Code', () => {

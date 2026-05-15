@@ -2,8 +2,10 @@ import { OculiEvent } from './schema';
 export interface HookAdapter {
     detect(body: Record<string, unknown>): boolean;
     normalize(body: Record<string, unknown>): OculiEvent;
-    formatAllow(): string;
-    formatDeny(reason: string): string;
+    formatAllow(event: OculiEvent): string;
+    formatDeny(reason: string, event: OculiEvent): string;
+    /** Non-blocking advisory output. Optional: only adapters whose hook protocol distinguishes warn from allow need to implement this. */
+    formatWarn?(reason: string, event: OculiEvent): string;
     /** HTTP status code for deny responses. Most adapters use 200 (body carries the decision); Windsurf uses 403. */
     denyStatusCode(): number;
 }

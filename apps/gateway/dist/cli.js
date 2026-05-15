@@ -29,6 +29,8 @@ const init_1 = require("./init");
 const local_policy_templates_1 = require("./services/local-policy-templates");
 const tail_1 = require("./commands/tail");
 const report_1 = require("./commands/report");
+const serve_1 = require("./commands/serve");
+const data_dir_1 = require("./services/data-dir");
 // ── version + help text ───────────────────────────────────────────────────────
 let cachedVersion = null;
 function getVersion() {
@@ -50,6 +52,7 @@ Usage:
   oculi <command> [options]
 
 Commands:
+  serve [options]          Start the gateway + dashboard (zero-config localhost)
   init <template>          Create .oculi/policy.yaml (templates: minimal, standard)
   install <target>         Install hooks for an IDE (targets: claude-code, cursor)
   uninstall <target>       Remove hooks for an IDE
@@ -133,9 +136,9 @@ Adapters:
   (auto-detected from payload if not specified)
 
 Exit codes:
-  0   allowed
-  1   denied by gateway, or usage/network error
-  2   denied by local policy
+  0   allowed (including fail-open when gateway is unreachable)
+  1   usage or parse error
+  2   denied by local policy or gateway
 
 Example:
   echo '{"hook_event_name":"PreToolUse",...}' | oculi emit claude-code
@@ -155,6 +158,33 @@ Options:
 
 Example:
   oculi tail --filter deny
+`;
+const SERVE_HELP = `oculi serve — start the gateway and dashboard
+
+Usage:
+  oculi serve [options]
+
+Options:
+  --port N             Port to listen on (default: 3000)
+  --bind ADDR          Interface to bind to (default: 127.0.0.1)
+                       Non-localhost binds require --auth.
+  --data-dir DIR       Directory for sqlite + config (default: ~/.oculi/)
+  --auth SECRET        Enable JWT auth on protected endpoints (≥32 chars).
+                       Also accepted via OCULI_GATEWAY_TOKEN env var.
+  --opa-url URL        Enable OPA-based central policy at this URL.
+
+Zero-config defaults (no flags, localhost):
+  No auth, no OPA, no rate limit, no upstreams.
+  Dashboard at http://127.0.0.1:3000/admin.
+
+Server mode (--bind non-localhost):
+  Auth required (--auth or OCULI_GATEWAY_TOKEN) — refuses to start otherwise.
+  Rate limiting enabled (10 capacity / 2 per second per actor:tool).
+
+Examples:
+  oculi serve                                # local dev
+  oculi serve --port 4000                    # different port
+  oculi serve --bind 0.0.0.0 --auth $SEC     # enterprise deployment
 `;
 const REPORT_HELP = `oculi report — summarize recent telemetry
 
@@ -224,6 +254,7 @@ async function runEmit(argv) {
     // ── Local policy evaluation (client-side, against OculiEvent) ─────────────
     let localDecision = 'allow';
     let localRuleIds = [];
+    let localReason;
     const policyPath = (0, local_policy_1.findPolicyFile)();
     if (policyPath) {
         try {
@@ -237,17 +268,16 @@ async function runEmit(argv) {
                         .filter((r) => r.action === 'deny')
                         .map((r) => r.id)
                         .join(', ');
-                    const reason = `denied by local policy: ${denyIds}`;
-                    process.stderr.write(`oculi: ${reason}\n`);
-                    process.stdout.write(result.adapter.formatDeny(reason));
-                    logTelemetry(result.event, 'deny', localRuleIds);
-                    process.exit(2);
+                    localReason = `Blocked by Oculi rule: ${denyIds}`;
+                    // Falls through to the gateway POST so the deny appears in the dashboard.
+                    // The pre-decided headers below tell the gateway to record it verbatim.
                 }
                 if (policyResult.action === 'warn') {
                     const warnIds = policyResult.matchedRules
                         .filter((r) => r.action === 'warn')
                         .map((r) => r.id)
                         .join(', ');
+                    localReason = `Oculi warning: ${warnIds}`;
                     process.stderr.write(`oculi: warning from local policy: ${warnIds}\n`);
                 }
             }
@@ -266,30 +296,97 @@ async function runEmit(argv) {
     };
     if (token)
         headers['Authorization'] = `Bearer ${token}`;
+    // When local policy decided, tell the gateway to record it verbatim.
+    // Without these headers the gateway re-evaluates with its own (central) policy,
+    // which doesn't know about local rules, so the decision label would be wrong.
+    if (localDecision !== 'allow') {
+        headers['X-Oculi-Local-Decision'] = localDecision;
+        if (localReason)
+            headers['X-Oculi-Local-Reason'] = localReason;
+        if (localRuleIds.length > 0)
+            headers['X-Oculi-Local-Rule-Ids'] = localRuleIds.join(',');
+    }
     let res;
     try {
         res = await fetch(`${gatewayUrl}/v1/hooks`, {
             method: 'POST',
             headers,
             body: stdin,
+            signal: AbortSignal.timeout(1500),
         });
     }
     catch {
         process.stderr.write(`oculi: gateway unreachable (${gatewayUrl}) — failing open\n`);
-        process.stdout.write(result.adapter.formatAllow());
+        writeDecisionOutput(result.adapter, result.event, localDecision, localReason, undefined);
         logTelemetry(result.event, localDecision, localRuleIds);
         process.exit(0);
     }
-    // Determine final decision from gateway response
+    // Non-2xx is treated the same as unreachable: the gateway gave no usable
+    // verdict, so defer to localDecision. Without this, a gateway returning 401
+    // (auth misconfig) or 500 (internal error) would translate to a blanket deny.
+    if (!res.ok) {
+        process.stderr.write(`oculi: gateway error ${res.status} (${gatewayUrl}) — failing open\n`);
+        writeDecisionOutput(result.adapter, result.event, localDecision, localReason, undefined);
+        logTelemetry(result.event, localDecision, localRuleIds);
+        process.exit(0);
+    }
+    // Gateway returned 2xx. Final decision is driven purely by localDecision —
+    // for claude-code the gateway encodes verdicts in the response body, not the
+    // status code, so res.ok no longer carries decision signal once we get here.
     const responseText = await res.text();
-    const gatewayDecision = res.ok ? 'allow' : 'deny';
-    // Use the most restrictive decision between local and gateway
-    const finalDecision = localDecision === 'warn' ? 'warn'
-        : gatewayDecision === 'deny' ? 'deny'
-            : localDecision;
-    logTelemetry(result.event, finalDecision, localRuleIds);
-    process.stdout.write(responseText);
-    process.exit(res.ok ? 0 : 1);
+    const finalDecision = localDecision === 'deny' ? 'deny'
+        : localDecision === 'warn' ? 'warn'
+            : 'allow';
+    // For Stop, never propagate denies — keeps Claude's stop flow predictable.
+    const effectiveDecision = result.event.hook_event_name === 'Stop' ? 'allow' : finalDecision;
+    logTelemetry(result.event, effectiveDecision, localRuleIds);
+    writeDecisionOutput(result.adapter, result.event, effectiveDecision, localReason, responseText);
+    process.exit(0);
+}
+/**
+ * Emit the adapter's stdout response for a final decision.
+ *
+ * Reason precedence:
+ *   - warn → localReason (always set by the local-policy warn branch)
+ *   - deny → localReason if local policy decided; otherwise extract from the
+ *            gateway response body; otherwise a generic "Blocked by Oculi gateway".
+ */
+function writeDecisionOutput(adapter, event, decision, localReason, gatewayBody) {
+    if (decision === 'allow') {
+        process.stdout.write(adapter.formatAllow(event));
+        return;
+    }
+    if (decision === 'warn') {
+        const warnReason = localReason ?? 'Oculi warning';
+        const warnOutput = adapter.formatWarn
+            ? adapter.formatWarn(warnReason, event)
+            : adapter.formatAllow(event);
+        process.stdout.write(warnOutput);
+        return;
+    }
+    const reason = localReason ?? extractGatewayReason(gatewayBody) ?? 'Blocked by Oculi gateway';
+    process.stdout.write(adapter.formatDeny(reason, event));
+}
+/**
+ * Best-effort extraction of a human-readable reason from a gateway response.
+ * Returns the first non-empty string found among the common keys, or null.
+ */
+function extractGatewayReason(body) {
+    if (!body)
+        return null;
+    try {
+        const parsed = JSON.parse(body);
+        for (const key of ['reason', 'permissionDecisionReason', 'message']) {
+            const value = parsed[key];
+            if (typeof value === 'string' && value.trim().length > 0) {
+                return value;
+            }
+        }
+    }
+    catch {
+        // Non-JSON body — ignore.
+    }
+    return null;
 }
 // ── install / uninstall ───────────────────────────────────────────────────────
 const SUPPORTED_TARGETS = ['cursor', 'claude-code'];
@@ -408,6 +505,72 @@ function runReportCommand(argv) {
         hours,
     });
 }
+// ── serve ────────────────────────────────────────────────────────────────────
+function parseServeArgs(argv) {
+    const opts = {
+        port: 3000,
+        bind: '127.0.0.1',
+        dataDir: (0, data_dir_1.defaultDataDir)(),
+    };
+    for (let i = 0; i < argv.length; i++) {
+        const arg = argv[i];
+        const next = argv[i + 1];
+        switch (arg) {
+            case '--port':
+                if (!next)
+                    throw new Error('--port requires a value');
+                opts.port = parseInt(next, 10);
+                if (Number.isNaN(opts.port) || opts.port <= 0 || opts.port > 65535) {
+                    throw new Error(`invalid --port value: ${next}`);
+                }
+                i++;
+                break;
+            case '--bind':
+                if (!next)
+                    throw new Error('--bind requires a value');
+                opts.bind = next;
+                i++;
+                break;
+            case '--data-dir':
+                if (!next)
+                    throw new Error('--data-dir requires a value');
+                opts.dataDir = next;
+                i++;
+                break;
+            case '--auth':
+                if (!next)
+                    throw new Error('--auth requires a secret');
+                opts.auth = next;
+                i++;
+                break;
+            case '--opa-url':
+                if (!next)
+                    throw new Error('--opa-url requires a value');
+                opts.opaUrl = next;
+                i++;
+                break;
+            default:
+                throw new Error(`unknown serve option: ${arg}`);
+        }
+    }
+    return opts;
+}
+async function runServeCommand(argv) {
+    if (hasHelpFlag(argv)) {
+        process.stdout.write(SERVE_HELP);
+        process.exit(0);
+    }
+    let opts;
+    try {
+        opts = parseServeArgs(argv);
+    }
+    catch (err) {
+        process.stderr.write(`oculi: ${err.message}\n`);
+        process.stderr.write('Run `oculi serve --help` for usage.\n');
+        process.exit(1);
+    }
+    await (0, serve_1.runServe)(opts);
+}
 // ── main ──────────────────────────────────────────────────────────────────────
 async function main() {
     const argv = process.argv.slice(2);
@@ -426,6 +589,9 @@ async function main() {
     }
     if (!subcmd || subcmd === 'emit') {
         await runEmit(rest);
+    }
+    else if (subcmd === 'serve') {
+        await runServeCommand(rest);
     }
     else if (subcmd === 'install') {
         await runInstall(rest);

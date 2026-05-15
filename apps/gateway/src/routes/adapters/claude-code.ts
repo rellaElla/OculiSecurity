@@ -91,12 +91,41 @@ export function normalize(body: Record<string, unknown>): OculiEvent {
   return parseClaudeCodeEvent(JSON.stringify(body), hookEvent);
 }
 
-export function formatAllow(): string {
-  return JSON.stringify({ decision: 'allow' });
+/**
+ * Output shapes follow the Claude Code hook spec at
+ * https://code.claude.com/docs/en/hooks.
+ *
+ *  - PreToolUse: blocking via `hookSpecificOutput.permissionDecision`.
+ *  - PostToolUse: cannot block the tool (already ran); top-level `decision: "block"`
+ *    only prevents Claude from continuing to the next turn.
+ *  - Stop / others: empty `{}` = allow / default behavior. We never block Stop.
+ *
+ * All shapes are emitted with exit code 0; Claude Code ignores stdout on exit 2.
+ */
+
+export function formatAllow(_event: OculiEvent): string {
+  return '{}';
 }
 
-export function formatDeny(reason: string): string {
+export function formatDeny(reason: string, event: OculiEvent): string {
+  if (event.hook_event_name === 'PreToolUse') {
+    return JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'deny',
+        permissionDecisionReason: reason,
+      },
+    });
+  }
+  // PostToolUse (and unknown events) — prevent Claude from continuing.
   return JSON.stringify({ decision: 'block', reason });
+}
+
+export function formatWarn(reason: string, event: OculiEvent): string {
+  if (event.hook_event_name === 'PreToolUse') {
+    return JSON.stringify({ systemMessage: reason });
+  }
+  return '{}';
 }
 
 export function denyStatusCode(): number {

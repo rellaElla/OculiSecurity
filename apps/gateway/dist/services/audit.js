@@ -4,10 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuditService = void 0;
-const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
 const crypto_1 = __importDefault(require("crypto"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const sqlite_loader_1 = require("./sqlite-loader");
 class AuditService {
     db;
     storeFullArgs;
@@ -18,7 +18,8 @@ class AuditService {
         if (!fs_1.default.existsSync(dir)) {
             fs_1.default.mkdirSync(dir, { recursive: true });
         }
-        this.db = new better_sqlite3_1.default(config.dbPath);
+        const Ctor = (0, sqlite_loader_1.loadSqlite)();
+        this.db = new Ctor(config.dbPath);
         this.db.pragma('journal_mode = WAL');
         this.db.pragma('foreign_keys = ON');
         this.initialize();

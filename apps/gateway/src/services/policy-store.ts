@@ -1,7 +1,8 @@
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { AppConfig } from '../config';
+import { loadSqlite } from './sqlite-loader';
 
 export interface PolicyRecord {
   id: number;
@@ -80,7 +81,8 @@ export class PolicyStore {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    this.db = new Database(config.dbPath);
+    const Ctor = loadSqlite();
+    this.db = new Ctor(config.dbPath);
     this.db.pragma('journal_mode = WAL');
     this.initialize();
   }

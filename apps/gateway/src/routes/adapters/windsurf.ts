@@ -54,12 +54,12 @@ export function normalize(body: Record<string, unknown>): OculiEvent {
 }
 
 // Windsurf allow: HTTP 200, no specific body needed
-export function formatAllow(): string {
+export function formatAllow(_event: OculiEvent): string {
   return JSON.stringify({ status: 'allow' });
 }
 
 // Windsurf block: caller sends HTTP 403 — body is informational only
-export function formatDeny(reason: string): string {
+export function formatDeny(reason: string, _event: OculiEvent): string {
   return JSON.stringify({ status: 'deny', reason });
 }
 

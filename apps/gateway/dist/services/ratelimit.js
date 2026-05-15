@@ -19,6 +19,11 @@ class RateLimiter {
         this.refillPerMs = refillPerSecond / 1000;
     }
     check(key) {
+        // capacity === 0 disables rate limiting (every request allowed). Used by
+        // `oculi serve` on localhost so IDE hook bursts don't trip 429s.
+        if (this.capacity === 0) {
+            return { allowed: true, remaining: Number.POSITIVE_INFINITY, retryAfterMs: 0 };
+        }
         const now = Date.now();
         let bucket = this.buckets.get(key);
         if (!bucket) {

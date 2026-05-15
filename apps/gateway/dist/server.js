@@ -25,7 +25,9 @@ const tool_executor_1 = require("./services/tool-executor");
 async function buildServer(config) {
     const app = (0, fastify_1.default)({
         logger: config.logLevel !== 'silent'
-            ? { level: config.logLevel }
+            ? // Route pino to stderr so it can't pollute the `oculi serve` banner
+                // on stdout. Logs still print, just to the appropriate stream.
+                { level: config.logLevel, stream: process.stderr }
             : false,
         trustProxy: true, // needed for accurate request.ip behind Docker/nginx
     });

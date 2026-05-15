@@ -36,11 +36,11 @@ function normalize(body) {
     };
 }
 // Windsurf allow: HTTP 200, no specific body needed
-function formatAllow() {
+function formatAllow(_event) {
     return JSON.stringify({ status: 'allow' });
 }
 // Windsurf block: caller sends HTTP 403 — body is informational only
-function formatDeny(reason) {
+function formatDeny(reason, _event) {
     return JSON.stringify({ status: 'deny', reason });
 }
 function denyStatusCode() {

@@ -134,11 +134,11 @@ export function normalize(body: Record<string, unknown>): OculiEvent {
   return parseCursorEvent(JSON.stringify(body), hookEvent);
 }
 
-export function formatAllow(): string {
+export function formatAllow(_event: OculiEvent): string {
   return JSON.stringify({ permissionDecision: 'allow' });
 }
 
-export function formatDeny(reason: string): string {
+export function formatDeny(reason: string, _event: OculiEvent): string {
   return JSON.stringify({ permissionDecision: 'deny', permissionDecisionReason: reason });
 }
 

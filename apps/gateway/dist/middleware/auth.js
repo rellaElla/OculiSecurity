@@ -34,6 +34,19 @@ function registerAuthMiddleware(app, jwtSecret) {
     app.decorateRequest('actor', null);
     // Prehandler hook: runs on every request before route handlers
     app.addHook('preHandler', async (request, reply) => {
+        // No-auth mode (e.g. `oculi serve` on localhost): inject a synthetic admin
+        // actor on every request and skip all JWT logic. Routes that gate on
+        // `request.actor` (admin APIs, MCP) still work; protected proxy endpoints
+        // (/v1/call etc.) are reachable, which is intended for local dev.
+        if (!jwtSecret) {
+            request.actor = {
+                sub: 'local',
+                actor: 'local-dev',
+                orgId: 'default',
+                roles: ['admin'],
+            };
+            return;
+        }
         // Skip auth for health check and all /admin static assets.
         // The admin HTML is served unauthenticated; the /admin/logs and /admin/upstreams
         // API routes enforce auth themselves via request.actor checks.

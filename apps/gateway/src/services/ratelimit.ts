@@ -31,6 +31,11 @@ export class RateLimiter {
   }
 
   check(key: string): RateLimitResult {
+    // capacity === 0 disables rate limiting (every request allowed). Used by
+    // `oculi serve` on localhost so IDE hook bursts don't trip 429s.
+    if (this.capacity === 0) {
+      return { allowed: true, remaining: Number.POSITIVE_INFINITY, retryAfterMs: 0 };
+    }
     const now = Date.now();
     let bucket = this.buckets.get(key);
 

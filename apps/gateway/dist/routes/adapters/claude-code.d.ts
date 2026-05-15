@@ -21,6 +21,18 @@ export declare function detect(body: Record<string, unknown>): boolean;
  * Delegates all parsing logic to parseClaudeCodeEvent.
  */
 export declare function normalize(body: Record<string, unknown>): OculiEvent;
-export declare function formatAllow(): string;
-export declare function formatDeny(reason: string): string;
+/**
+ * Output shapes follow the Claude Code hook spec at
+ * https://code.claude.com/docs/en/hooks.
+ *
+ *  - PreToolUse: blocking via `hookSpecificOutput.permissionDecision`.
+ *  - PostToolUse: cannot block the tool (already ran); top-level `decision: "block"`
+ *    only prevents Claude from continuing to the next turn.
+ *  - Stop / others: empty `{}` = allow / default behavior. We never block Stop.
+ *
+ * All shapes are emitted with exit code 0; Claude Code ignores stdout on exit 2.
+ */
+export declare function formatAllow(_event: OculiEvent): string;
+export declare function formatDeny(reason: string, event: OculiEvent): string;
+export declare function formatWarn(reason: string, event: OculiEvent): string;
 export declare function denyStatusCode(): number;

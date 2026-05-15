@@ -16,6 +16,6 @@ export declare function detect(body: Record<string, unknown>): boolean;
  * Delegates all parsing logic to parseCursorEvent.
  */
 export declare function normalize(body: Record<string, unknown>): OculiEvent;
-export declare function formatAllow(): string;
-export declare function formatDeny(reason: string): string;
+export declare function formatAllow(_event: OculiEvent): string;
+export declare function formatDeny(reason: string, _event: OculiEvent): string;
 export declare function denyStatusCode(): number;

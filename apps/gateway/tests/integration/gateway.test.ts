@@ -413,7 +413,7 @@ describe('Telemetry ingestion — POST /v1/events', () => {
 });
 
 describe('Hook enforcement — POST /v1/hooks', () => {
-  it('accepts Claude Code PreToolUse and returns allow decision', async () => {
+  it('accepts Claude Code PreToolUse and returns allow (empty body per modern hook spec)', async () => {
     const res = await gatewayApp.inject({
       method: 'POST',
       url: '/v1/hooks',
@@ -429,7 +429,76 @@ describe('Hook enforcement — POST /v1/hooks', () => {
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.decision).toBe('allow');
+    // Modern Claude Code allow = empty object (no recognized fields = default allow)
+    expect(body).toEqual({});
+  });
+
+  it('honors X-Oculi-Local-Decision: deny header and audits with the local reason', async () => {
+    const sessionId = 'cc-predecided-deny-' + Date.now();
+    const res = await gatewayApp.inject({
+      method: 'POST',
+      url: '/v1/hooks',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Oculi-Local-Decision': 'deny',
+        'X-Oculi-Local-Reason': 'Blocked by Oculi rule: no-rm-rf',
+        'X-Oculi-Local-Rule-Ids': 'no-rm-rf',
+      },
+      body: JSON.stringify({
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Bash',
+        tool_input: { command: 'rm -rf /tmp/x' },
+        session_id: sessionId,
+        cwd: '/Users/test',
+      }),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({});
+
+    const search = await gatewayApp.inject({
+      method: 'GET',
+      url: '/api/admin/search?decision=deny&limit=500',
+    });
+    const body = JSON.parse(search.body) as { results: Array<{ decision: string; reason: string; sessionId: string }> };
+    const found = body.results.find((r) => r.sessionId === sessionId);
+    expect(found).toBeDefined();
+    expect(found!.decision).toBe('deny');
+    expect(found!.reason).toBe('Blocked by Oculi rule: no-rm-rf');
+  });
+
+  it('honors X-Oculi-Local-Decision: warn header (persisted as allow with warning reason)', async () => {
+    const sessionId = 'cc-predecided-warn-' + Date.now();
+    const res = await gatewayApp.inject({
+      method: 'POST',
+      url: '/v1/hooks',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Oculi-Local-Decision': 'warn',
+        'X-Oculi-Local-Reason': 'Oculi warning: warn-env-access',
+        'X-Oculi-Local-Rule-Ids': 'warn-env-access',
+      },
+      body: JSON.stringify({
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Read',
+        tool_input: { file_path: '/Users/test/.env' },
+        session_id: sessionId,
+        cwd: '/Users/test',
+      }),
+    });
+
+    expect(res.statusCode).toBe(200);
+
+    const search = await gatewayApp.inject({
+      method: 'GET',
+      url: '/api/admin/search?decision=allow&limit=500',
+    });
+    const body = JSON.parse(search.body) as { results: Array<{ decision: string; reason: string; sessionId: string }> };
+    const found = body.results.find((r) => r.sessionId === sessionId);
+    expect(found).toBeDefined();
+    // Warn maps to decision='allow' (audit_logs CHECK constraint), with reason prefix
+    expect(found!.decision).toBe('allow');
+    expect(found!.reason).toBe('Oculi warning: warn-env-access');
   });
 
   it('accepts Claude Code PostToolUse and returns 202 (telemetry)', async () => {

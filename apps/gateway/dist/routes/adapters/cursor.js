@@ -128,10 +128,10 @@ function normalize(body) {
     const hookEvent = body.hook_event_name ?? 'unknown';
     return parseCursorEvent(JSON.stringify(body), hookEvent);
 }
-function formatAllow() {
+function formatAllow(_event) {
     return JSON.stringify({ permissionDecision: 'allow' });
 }
-function formatDeny(reason) {
+function formatDeny(reason, _event) {
     return JSON.stringify({ permissionDecision: 'deny', permissionDecisionReason: reason });
 }
 function denyStatusCode() {

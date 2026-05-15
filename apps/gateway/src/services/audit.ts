@@ -1,9 +1,10 @@
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { AuditRecord } from '../types';
 import { AppConfig } from '../config';
+import { loadSqlite } from './sqlite-loader';
 
 export class AuditService {
   private readonly db: Database.Database;
@@ -18,7 +19,8 @@ export class AuditService {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    this.db = new Database(config.dbPath);
+    const Ctor = loadSqlite();
+    this.db = new Ctor(config.dbPath);
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('foreign_keys = ON');
     this.initialize();

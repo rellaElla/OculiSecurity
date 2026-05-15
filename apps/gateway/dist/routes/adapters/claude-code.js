@@ -5,6 +5,7 @@ exports.detect = detect;
 exports.normalize = normalize;
 exports.formatAllow = formatAllow;
 exports.formatDeny = formatDeny;
+exports.formatWarn = formatWarn;
 exports.denyStatusCode = denyStatusCode;
 /**
  * Adapter for Claude Code PreToolUse / PostToolUse hook payloads.
@@ -86,11 +87,38 @@ function normalize(body) {
     const hookEvent = body.hook_event_name ?? 'PostToolUse';
     return parseClaudeCodeEvent(JSON.stringify(body), hookEvent);
 }
-function formatAllow() {
-    return JSON.stringify({ decision: 'allow' });
+/**
+ * Output shapes follow the Claude Code hook spec at
+ * https://code.claude.com/docs/en/hooks.
+ *
+ *  - PreToolUse: blocking via `hookSpecificOutput.permissionDecision`.
+ *  - PostToolUse: cannot block the tool (already ran); top-level `decision: "block"`
+ *    only prevents Claude from continuing to the next turn.
+ *  - Stop / others: empty `{}` = allow / default behavior. We never block Stop.
+ *
+ * All shapes are emitted with exit code 0; Claude Code ignores stdout on exit 2.
+ */
+function formatAllow(_event) {
+    return '{}';
 }
-function formatDeny(reason) {
+function formatDeny(reason, event) {
+    if (event.hook_event_name === 'PreToolUse') {
+        return JSON.stringify({
+            hookSpecificOutput: {
+                hookEventName: 'PreToolUse',
+                permissionDecision: 'deny',
+                permissionDecisionReason: reason,
+            },
+        });
+    }
+    // PostToolUse (and unknown events) — prevent Claude from continuing.
     return JSON.stringify({ decision: 'block', reason });
+}
+function formatWarn(reason, event) {
+    if (event.hook_event_name === 'PreToolUse') {
+        return JSON.stringify({ systemMessage: reason });
+    }
+    return '{}';
 }
 function denyStatusCode() {
     return 200; // Claude Code reads the JSON body; HTTP status is always 200

@@ -31,6 +31,37 @@ function registerHooksRoute(app, ctx) {
         const startMs = Date.now();
         const tool = event.tool ?? '__stop__';
         request.log.info({ adapter: routed.adapterName, tool: event.tool, phase: event.phase }, 'hook received');
+        // ── Pre-decided fast path ───────────────────────────────────────────────
+        // When the CLI sends X-Oculi-Local-Decision (deny | warn), the local policy
+        // engine has already executed. Record the event verbatim and skip rate
+        // limit + central policy. Warn is persisted as decision='allow' with a
+        // distinguishing reason prefix because the audit_logs CHECK constraint only
+        // allows 'allow' | 'deny'; surfacing warn as a first-class decision is a
+        // follow-up that requires a table-rebuild migration.
+        const localDec = request.headers['x-oculi-local-decision'];
+        if (localDec === 'deny' || localDec === 'warn') {
+            const localReasonHeader = request.headers['x-oculi-local-reason'];
+            const localReason = (Array.isArray(localReasonHeader) ? localReasonHeader[0] : localReasonHeader) ??
+                'oculi: pre-decided';
+            ctx.audit.log({
+                requestId,
+                timestamp: event.timestamp ?? new Date().toISOString(),
+                actor: event.actor,
+                orgId: 'default',
+                upstreamId: `ext:${event.ide_source}`,
+                tool,
+                argsHash: ctx.audit.hash(args),
+                argsJson: storedArgsJson,
+                decision: localDec === 'deny' ? 'deny' : 'allow',
+                reason: localReason,
+                latencyMs: Date.now() - startMs,
+                outcome: localDec === 'deny' ? 'denied' : 'success',
+                ip,
+                sessionId,
+            });
+            reply.code(200).send({});
+            return;
+        }
         // ── Post / complete phase: telemetry only ───────────────────────────────
         if (event.phase === 'post' || event.phase === 'complete') {
             const resultStr = event.tool_result != null ? JSON.stringify(event.tool_result) : null;
@@ -81,7 +112,7 @@ function registerHooksRoute(app, ctx) {
             });
             reply
                 .code(adapter.denyStatusCode())
-                .send(JSON.parse(adapter.formatDeny('rate limit exceeded')));
+                .send(JSON.parse(adapter.formatDeny('rate limit exceeded', event)));
             return;
         }
         // 2. Policy evaluation
@@ -103,7 +134,7 @@ function registerHooksRoute(app, ctx) {
         catch (err) {
             // Policy eval failure → fail open so IDEs aren't blocked
             request.log.error({ err }, 'policy eval error in hook — failing open');
-            reply.code(200).send(JSON.parse(adapter.formatAllow()));
+            reply.code(200).send(JSON.parse(adapter.formatAllow(event)));
             return;
         }
         // 3. Audit
@@ -127,9 +158,9 @@ function registerHooksRoute(app, ctx) {
         if (!decision.allow) {
             reply
                 .code(adapter.denyStatusCode())
-                .send(JSON.parse(adapter.formatDeny(decision.reason)));
+                .send(JSON.parse(adapter.formatDeny(decision.reason, event)));
             return;
         }
-        reply.code(200).send(JSON.parse(adapter.formatAllow()));
+        reply.code(200).send(JSON.parse(adapter.formatAllow(event)));
     });
 }
