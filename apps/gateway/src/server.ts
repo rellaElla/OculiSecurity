@@ -29,7 +29,9 @@ export async function buildServer(config: AppConfig): Promise<GatewayServer> {
   const app = Fastify({
     logger:
       config.logLevel !== 'silent'
-        ? { level: config.logLevel }
+        ? // Route pino to stderr so it can't pollute the `oculi serve` banner
+          // on stdout. Logs still print, just to the appropriate stream.
+          { level: config.logLevel, stream: process.stderr }
         : false,
     trustProxy: true, // needed for accurate request.ip behind Docker/nginx
   });
