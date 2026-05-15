@@ -454,57 +454,7 @@
     .page { display: none; }
     .page.active { display: block; }
 
-    .settings-section {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px 28px;
-      margin-bottom: 20px;
-    }
-
-    .settings-section-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* Form inputs */
-    .st-form-group { margin-bottom: 18px; }
-    .st-form-group:last-child { margin-bottom: 0; }
-    .st-form-label {
-      display: block; font-size: 0.82rem; color: var(--text-secondary);
-      margin-bottom: 8px; font-weight: 500;
-    }
-    .st-input {
-      width: 100%; box-sizing: border-box;
-      background: var(--bg-body); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text-primary);
-      font-size: 0.9rem; padding: 12px 14px;
-      outline: none; transition: border-color 0.15s;
-      font-family: inherit;
-    }
-    .st-input:focus { border-color: rgba(99,179,237,0.5); }
-    .st-select {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23718096' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 14px center;
-      padding-right: 38px; cursor: pointer;
-    }
-    .st-select option { background: #1a1f2e; }
-
-    /* Toggle rows */
-    .st-toggle-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 18px; background: var(--bg-body);
-      border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px;
-    }
-    .st-toggle-row:last-child { margin-bottom: 0; }
-    .st-toggle-info { display: flex; flex-direction: column; gap: 3px; }
-    .st-toggle-label { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
-    .st-toggle-desc { font-size: 0.78rem; color: var(--text-muted); }
+    /* Toggle switch — used by Policies "Enabled" column in the rules table */
     .st-switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
     .st-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
     .st-slider {
@@ -519,26 +469,6 @@
     }
     .st-switch input:checked + .st-slider { background: var(--accent-green); }
     .st-switch input:checked + .st-slider:before { transform: translateX(20px); }
-
-    /* Save bar */
-    .settings-save-bar {
-      display: flex; justify-content: flex-end; padding: 8px 0 16px;
-    }
-    .btn-save-settings {
-      background: #4299e1; color: white; border: none;
-      padding: 12px 28px; border-radius: 10px; font-size: 0.9rem;
-      font-weight: 600; cursor: pointer; display: flex; align-items: center;
-      gap: 8px; transition: background 0.15s;
-    }
-    .btn-save-settings:hover { background: #3182ce; }
-    .settings-toast {
-      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
-      background: #2d3748; border: 1px solid var(--border); color: var(--text-primary);
-      padding: 12px 24px; border-radius: 10px; font-size: 0.88rem;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 9999;
-      opacity: 0; transition: opacity 0.2s; pointer-events: none;
-    }
-    .settings-toast.show { opacity: 1; }
 
     .upstream-card-id {
       font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -1665,12 +1595,6 @@
           <span class="nav-label">Integrations</span>
         </a>
       </li>
-      <li>
-        <a href="/admin/settings" data-page="settings" data-tooltip="Settings">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          <span class="nav-label">Settings</span>
-        </a>
-      </li>
     </ul>
     <div class="sidebar-collapse-btn" onclick="toggleSidebar()" id="collapse-btn">
       <svg class="sidebar-collapse-icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
@@ -1694,10 +1618,6 @@
       </div>
 
       <div class="topbar-spacer"></div>
-
-      <div class="topbar-icon" title="Settings">
-        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </div>
 
       <div class="user-avatar">
         <div class="user-avatar-circle">
@@ -1768,101 +1688,6 @@
           </div>
         </div>
       </div>
-
-      <!-- ════════════ Settings Page ════════════ -->
-      <div id="page-settings" class="page">
-        <h1 class="page-title">Settings</h1>
-        <p class="page-subtitle">Configure gateway settings and preferences</p>
-
-        <!-- General Settings -->
-        <div class="settings-section">
-          <div class="settings-section-title">General Settings</div>
-          <div class="st-form-group">
-            <label class="st-form-label" for="st-gateway-name">Gateway Name</label>
-            <input type="text" class="st-input" id="st-gateway-name" value="Oculi Security Gateway">
-          </div>
-          <div class="st-form-group">
-            <label class="st-form-label" for="st-org">Default Organization</label>
-            <select class="st-input st-select" id="st-org">
-              <option>Oculi Security</option>
-              <option>Engineering</option>
-              <option>Security</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Security Settings -->
-        <div class="settings-section">
-          <div class="settings-section-title">Security Settings</div>
-          <div class="st-toggle-row">
-            <div class="st-toggle-info">
-              <div class="st-toggle-label">Require mTLS for all upstreams</div>
-              <div class="st-toggle-desc">Enforce mutual TLS authentication</div>
-            </div>
-            <label class="st-switch">
-              <input type="checkbox" id="st-mtls" checked>
-              <span class="st-slider"></span>
-            </label>
-          </div>
-          <div class="st-toggle-row">
-            <div class="st-toggle-info">
-              <div class="st-toggle-label">Enable JWT validation</div>
-              <div class="st-toggle-desc">Validate JWT tokens on all requests</div>
-            </div>
-            <label class="st-switch">
-              <input type="checkbox" id="st-jwt" checked>
-              <span class="st-slider"></span>
-            </label>
-          </div>
-          <div class="st-toggle-row">
-            <div class="st-toggle-info">
-              <div class="st-toggle-label">Block high-risk requests</div>
-              <div class="st-toggle-desc">Automatically deny requests with risk score &gt; 90</div>
-            </div>
-            <label class="st-switch">
-              <input type="checkbox" id="st-block-high-risk" checked>
-              <span class="st-slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Audit & Logging -->
-        <div class="settings-section">
-          <div class="settings-section-title">Audit &amp; Logging</div>
-          <div class="st-form-group">
-            <label class="st-form-label" for="st-retention">Log Retention (days)</label>
-            <input type="number" class="st-input" id="st-retention" value="90" min="1" max="3650">
-          </div>
-          <div class="st-toggle-row">
-            <div class="st-toggle-info">
-              <div class="st-toggle-label">Log request payloads</div>
-              <div class="st-toggle-desc">Store full request JSON in audit logs</div>
-            </div>
-            <label class="st-switch">
-              <input type="checkbox" id="st-log-requests" checked>
-              <span class="st-slider"></span>
-            </label>
-          </div>
-          <div class="st-toggle-row">
-            <div class="st-toggle-info">
-              <div class="st-toggle-label">Log response payloads</div>
-              <div class="st-toggle-desc">Store full response JSON in audit logs</div>
-            </div>
-            <label class="st-switch">
-              <input type="checkbox" id="st-log-responses">
-              <span class="st-slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="settings-save-bar">
-          <button class="btn-save-settings" onclick="saveSettings()">
-            <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Save Settings
-          </button>
-        </div>
-      </div>
-      <div class="settings-toast" id="settings-toast">Settings saved</div>
 
       <!-- ════════════ Policies Page ════════════ -->
       <div id="page-policies" class="page">
@@ -2436,40 +2261,6 @@
       var div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
-    }
-
-    var ST_KEY = 'oculi-security-settings';
-
-    function loadSettings() {
-      var saved = {};
-      try { saved = JSON.parse(localStorage.getItem(ST_KEY) || '{}'); } catch(e) {}
-
-      if (saved.gatewayName !== undefined) document.getElementById('st-gateway-name').value = saved.gatewayName;
-      if (saved.org !== undefined) document.getElementById('st-org').value = saved.org;
-      if (saved.mtls !== undefined) document.getElementById('st-mtls').checked = saved.mtls;
-      if (saved.jwt !== undefined) document.getElementById('st-jwt').checked = saved.jwt;
-      if (saved.blockHighRisk !== undefined) document.getElementById('st-block-high-risk').checked = saved.blockHighRisk;
-      if (saved.retention !== undefined) document.getElementById('st-retention').value = saved.retention;
-      if (saved.logRequests !== undefined) document.getElementById('st-log-requests').checked = saved.logRequests;
-      if (saved.logResponses !== undefined) document.getElementById('st-log-responses').checked = saved.logResponses;
-    }
-
-    function saveSettings() {
-      var data = {
-        gatewayName: document.getElementById('st-gateway-name').value,
-        org: document.getElementById('st-org').value,
-        mtls: document.getElementById('st-mtls').checked,
-        jwt: document.getElementById('st-jwt').checked,
-        blockHighRisk: document.getElementById('st-block-high-risk').checked,
-        retention: document.getElementById('st-retention').value,
-        logRequests: document.getElementById('st-log-requests').checked,
-        logResponses: document.getElementById('st-log-responses').checked,
-      };
-      localStorage.setItem(ST_KEY, JSON.stringify(data));
-
-      var toast = document.getElementById('settings-toast');
-      toast.classList.add('show');
-      setTimeout(function() { toast.classList.remove('show'); }, 2500);
     }
 
     // ── Policies page ──
@@ -4025,7 +3816,6 @@
       } else {
         if (dashboardInterval) { clearInterval(dashboardInterval); dashboardInterval = null; }
       }
-      if (pageId === 'settings') loadSettings();
       if (pageId === 'policies') {
         if (activePolicyTab === 'visual') loadVisualRules();
         else loadPolicies();
@@ -4046,7 +3836,11 @@
 
     function handleRoute() {
       var pageId = getPageFromPath();
-      if (!document.getElementById('page-' + pageId)) return;
+      // Unknown page (e.g. stale /admin/settings bookmark) → fall back to overview
+      if (!document.getElementById('page-' + pageId)) {
+        history.replaceState(null, '', '/admin/overview');
+        pageId = 'overview';
+      }
       document.querySelectorAll('.sidebar-nav a').forEach(function(l) { l.classList.remove('active'); });
       var link = document.querySelector('.sidebar-nav a[data-page="' + pageId + '"]');
       if (link) link.classList.add('active');
@@ -4073,6 +3867,7 @@
     if (initPage !== 'overview' && document.getElementById('page-' + initPage)) {
       handleRoute();
     } else {
+      if (initPage !== 'overview') history.replaceState(null, '', '/admin/overview');
       loadDashboard();
       dashboardInterval = setInterval(loadDashboard, 30000);
     }
@@ -4089,13 +3884,6 @@
       });
     });
 
-    // Topbar settings icon navigates to settings page
-    document.querySelector('.topbar-icon[title="Settings"]').addEventListener('click', function() {
-      document.querySelectorAll('.sidebar-nav a').forEach(function(l) { l.classList.remove('active'); });
-      var settingsLink = document.querySelector('.sidebar-nav a[data-page="settings"]');
-      if (settingsLink) settingsLink.classList.add('active');
-      navigateTo('settings');
-    });
   </script>
 </body>
 </html>
