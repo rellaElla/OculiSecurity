@@ -57,3 +57,20 @@ export declare function readTelemetryLines(logPath: string, opts?: ReadOptions):
  * Get the path to the telemetry log file (creating .oculi/ dir if needed).
  */
 export declare function getTelemetryLogPath(oculiDir?: string): string;
+export interface OffsetReadResult {
+    entries: TelemetryLogEntry[];
+    /** End offset after the last fully-read line (suitable as the next checkpoint). */
+    newOffset: number;
+    /** Number of lines that failed to parse as JSON. */
+    skipped: number;
+    /** True iff the file was smaller than the requested offset — likely rotated. */
+    rotated: boolean;
+}
+/**
+ * Read telemetry entries starting at a byte offset. Used for incremental
+ * replay into sqlite — caller persists `newOffset` to resume next time.
+ *
+ * If the file is shorter than `offset` (rotation happened since last read),
+ * starts from byte 0 and reports `rotated: true`.
+ */
+export declare function readTelemetryLinesFromOffset(filePath: string, offset: number): OffsetReadResult;

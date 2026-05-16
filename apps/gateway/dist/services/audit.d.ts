@@ -5,6 +5,9 @@ export declare class AuditService {
     readonly storeFullArgs: boolean;
     constructor(config: AppConfig);
     private initialize;
+    /** Read the persisted byte offset for an absolute jsonl path. Zero when missing. */
+    private getReplayOffset;
+    private setReplayOffset;
     /** SHA-256 hex prefix of JSON-serialised data */
     hash(data: unknown): string;
     log(record: Omit<AuditRecord, 'id'>): void;
@@ -68,6 +71,22 @@ export declare class AuditService {
     }): {
         groupBy: string[];
         results: Array<Record<string, string | number>>;
+    };
+    /**
+     * Backfill audit_logs from `~/.oculi/telemetry.jsonl` (or whichever path is
+     * passed). Resumes from the persisted byte offset, so re-running serve does
+     * not double-count. Returns counts for observability.
+     *
+     * The CLI client always appends to telemetry.jsonl; the gateway only writes
+     * to sqlite. Without this replay, events generated while `oculi serve` was
+     * NOT running are invisible to the dashboard. See plan file for the full
+     * divergence analysis.
+     */
+    replayFromTelemetry(jsonlPath: string): {
+        inserted: number;
+        skipped: number;
+        newOffset: number;
+        rotated: boolean;
     };
     close(): void;
 }

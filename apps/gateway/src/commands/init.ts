@@ -107,6 +107,12 @@ export function runInit(opts: InitOpts = {}): InitResult {
   }
   out += `\nRestart your IDE for the hooks to take effect.\n`;
   out += `Then run \`oculi serve\` to view events in the dashboard.\n`;
+  out += `\n`;
+  out += `To remove later, run BOTH (in order):\n`;
+  out += `  oculi uninstall                         # removes hooks + policy\n`;
+  out += `  npm uninstall -g @oculisecurity/cli     # removes the binary\n`;
+  out += `(npm uninstall alone won't clean the hooks — npm has no way to know\n`;
+  out += ` about files we wrote outside our own package directory.)\n`;
   process.stdout.write(out);
 
   return {

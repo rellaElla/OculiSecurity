@@ -37,8 +37,10 @@ exports.buildServeConfig = buildServeConfig;
 exports.validateServeOpts = validateServeOpts;
 exports.runServe = runServe;
 const path = __importStar(require("path"));
+const os = __importStar(require("os"));
 const server_1 = require("../server");
 const data_dir_1 = require("../services/data-dir");
+const telemetry_log_1 = require("../services/telemetry-log");
 const LOCALHOST = new Set(['127.0.0.1', 'localhost', '::1']);
 function isLocalhost(addr) {
     return LOCALHOST.has(addr);
@@ -102,7 +104,28 @@ async function runServe(opts) {
     // Merge here so the rest of the code doesn't have to know about the env var.
     const auth = opts.auth ?? process.env.OCULI_GATEWAY_TOKEN;
     const config = buildServeConfig({ ...opts, auth });
-    const { app, close } = await (0, server_1.buildServer)(config);
+    const { app, audit, close } = await (0, server_1.buildServer)(config);
+    // Backfill the dashboard's sqlite from the CLI's telemetry.jsonl. Without
+    // this, events generated while no gateway was running are invisible at
+    // /admin even though `oculi tail` shows them. Checkpointed so re-runs of
+    // serve are no-ops.
+    const telemetryPath = (0, telemetry_log_1.findTelemetryLog)();
+    if (telemetryPath) {
+        try {
+            const r = audit.replayFromTelemetry(telemetryPath);
+            if (r.inserted > 0 || r.rotated) {
+                const tildePath = telemetryPath.startsWith(os.homedir())
+                    ? '~' + telemetryPath.slice(os.homedir().length)
+                    : telemetryPath;
+                const suffix = r.skipped > 0 ? ` (${r.skipped} malformed lines skipped)` : '';
+                const rotateNote = r.rotated ? ' [file rotated — replayed from start]' : '';
+                process.stdout.write(`Replayed ${r.inserted} events from ${tildePath}${rotateNote}${suffix}\n`);
+            }
+        }
+        catch (err) {
+            process.stderr.write(`oculi: telemetry replay failed (${err.message}) — continuing\n`);
+        }
+    }
     try {
         // listenTextResolver suppresses Fastify's default "Server listening at …"
         // info-level log so our own banner is the only thing the user sees.

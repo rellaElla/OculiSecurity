@@ -22,7 +22,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "tsc --noEmit",
     "hook": "tsx src/cli.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "preuninstall": "node dist/cli.js uninstall || true"
   },
   "keywords": [
     "ai-security",

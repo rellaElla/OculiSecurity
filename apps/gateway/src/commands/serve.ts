@@ -1,7 +1,9 @@
 import * as path from 'path';
+import * as os from 'os';
 import { AppConfig } from '../config';
 import { buildServer } from '../server';
 import { ensureDataDir } from '../services/data-dir';
+import { findTelemetryLog } from '../services/telemetry-log';
 
 export interface ServeOpts {
   port: number;
@@ -90,7 +92,32 @@ export async function runServe(opts: ServeOpts): Promise<void> {
   const auth = opts.auth ?? process.env.OCULI_GATEWAY_TOKEN;
   const config = buildServeConfig({ ...opts, auth });
 
-  const { app, close } = await buildServer(config);
+  const { app, audit, close } = await buildServer(config);
+
+  // Backfill the dashboard's sqlite from the CLI's telemetry.jsonl. Without
+  // this, events generated while no gateway was running are invisible at
+  // /admin even though `oculi tail` shows them. Checkpointed so re-runs of
+  // serve are no-ops.
+  const telemetryPath = findTelemetryLog();
+  if (telemetryPath) {
+    try {
+      const r = audit.replayFromTelemetry(telemetryPath);
+      if (r.inserted > 0 || r.rotated) {
+        const tildePath = telemetryPath.startsWith(os.homedir())
+          ? '~' + telemetryPath.slice(os.homedir().length)
+          : telemetryPath;
+        const suffix = r.skipped > 0 ? ` (${r.skipped} malformed lines skipped)` : '';
+        const rotateNote = r.rotated ? ' [file rotated — replayed from start]' : '';
+        process.stdout.write(
+          `Replayed ${r.inserted} events from ${tildePath}${rotateNote}${suffix}\n`,
+        );
+      }
+    } catch (err) {
+      process.stderr.write(
+        `oculi: telemetry replay failed (${(err as Error).message}) — continuing\n`,
+      );
+    }
+  }
 
   try {
     // listenTextResolver suppresses Fastify's default "Server listening at …"

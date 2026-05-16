@@ -4,7 +4,8 @@
  *
  * Subcommands:
  *   oculi emit [adapter]                  — read stdin, route to gateway (default behaviour)
- *   oculi init [--agent <name>]           — write .oculi/policy.yaml + wire agent hooks
+ *   oculi install [--agent <name>]        — wire user-level hooks + write ~/.oculi/policy.yaml
+ *   oculi init [--agent <name>]           — alias of install (legacy name)
  *   oculi uninstall [--agent <name>]      — remove Oculi hooks (and policy when no agent remains)
  *   oculi serve [options]                 — start the gateway + dashboard
  *   oculi tail [--filter <action>]        — live-stream telemetry log

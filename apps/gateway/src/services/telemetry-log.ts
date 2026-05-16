@@ -224,3 +224,74 @@ export function getTelemetryLogPath(oculiDir?: string): string {
   const dir = oculiDir ?? findOrCreateOculiDir();
   return path.join(dir, LOG_FILENAME);
 }
+
+export interface OffsetReadResult {
+  entries: TelemetryLogEntry[];
+  /** End offset after the last fully-read line (suitable as the next checkpoint). */
+  newOffset: number;
+  /** Number of lines that failed to parse as JSON. */
+  skipped: number;
+  /** True iff the file was smaller than the requested offset — likely rotated. */
+  rotated: boolean;
+}
+
+/**
+ * Read telemetry entries starting at a byte offset. Used for incremental
+ * replay into sqlite — caller persists `newOffset` to resume next time.
+ *
+ * If the file is shorter than `offset` (rotation happened since last read),
+ * starts from byte 0 and reports `rotated: true`.
+ */
+export function readTelemetryLinesFromOffset(
+  filePath: string,
+  offset: number,
+): OffsetReadResult {
+  if (!fs.existsSync(filePath)) {
+    return { entries: [], newOffset: offset, skipped: 0, rotated: false };
+  }
+
+  const size = fs.statSync(filePath).size;
+  let rotated = false;
+  let startOffset = offset;
+  if (size < offset) {
+    rotated = true;
+    startOffset = 0;
+  }
+
+  if (size === startOffset) {
+    return { entries: [], newOffset: startOffset, skipped: 0, rotated };
+  }
+
+  const fd = fs.openSync(filePath, 'r');
+  const length = size - startOffset;
+  const buf = Buffer.alloc(length);
+  try {
+    fs.readSync(fd, buf, 0, length, startOffset);
+  } finally {
+    fs.closeSync(fd);
+  }
+
+  const text = buf.toString('utf8');
+  // If the file does NOT end in a newline, the trailing fragment is a
+  // half-written line — don't consume it. The next read will pick it up.
+  const lastNewlineRel = text.lastIndexOf('\n');
+  if (lastNewlineRel === -1) {
+    // No complete line in this slice yet — leave offset unchanged.
+    return { entries: [], newOffset: offset, skipped: 0, rotated };
+  }
+  const consumed = text.slice(0, lastNewlineRel + 1);
+  const newOffset = startOffset + Buffer.byteLength(consumed, 'utf8');
+
+  const entries: TelemetryLogEntry[] = [];
+  let skipped = 0;
+  for (const line of consumed.split('\n')) {
+    if (line.trim().length === 0) continue;
+    try {
+      entries.push(JSON.parse(line) as TelemetryLogEntry);
+    } catch {
+      skipped++;
+    }
+  }
+
+  return { entries, newOffset, skipped, rotated };
+}

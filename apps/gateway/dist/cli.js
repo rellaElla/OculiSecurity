@@ -5,7 +5,8 @@
  *
  * Subcommands:
  *   oculi emit [adapter]                  — read stdin, route to gateway (default behaviour)
- *   oculi init [--agent <name>]           — write .oculi/policy.yaml + wire agent hooks
+ *   oculi install [--agent <name>]        — wire user-level hooks + write ~/.oculi/policy.yaml
+ *   oculi init [--agent <name>]           — alias of install (legacy name)
  *   oculi uninstall [--agent <name>]      — remove Oculi hooks (and policy when no agent remains)
  *   oculi serve [options]                 — start the gateway + dashboard
  *   oculi tail [--filter <action>]        — live-stream telemetry log
@@ -49,12 +50,14 @@ Usage:
   oculi <command> [options]
 
 Commands:
-  serve [options]            Start the gateway + dashboard (zero-config localhost)
-  init [--agent <name>]      Write .oculi/policy.yaml and wire hooks for detected agents
+  install [--agent <name>]   Wire user-level hooks (~/.claude/settings.json) and
+                             write ~/.oculi/policy.yaml — captures every Claude
+                             Code session on this machine.
   uninstall [--agent <name>] Remove Oculi hooks (and policy when nothing remains wired)
-  emit [adapter]             Process a hook event from stdin (called by IDEs)
-  tail [--filter <kind>]     Live-stream telemetry log
+  serve [options]            Start the gateway + dashboard (zero-config localhost)
+  tail [--filter <kind>]     Live-stream telemetry log (~/.oculi/telemetry.jsonl)
   report [--json] [--hours N] Summarize recent events
+  emit [adapter]             Process a hook event from stdin (called by IDEs)
 
 Run \`oculi <command> --help\` for command-specific help.
 
@@ -65,25 +68,36 @@ Environment variables:
 
 Documentation: https://docs.oculisecurity.com
 `;
-const INIT_HELP = `oculi init — write policy and wire agent hooks
+const INSTALL_HELP = `oculi install — wire user-level hooks and write policy
 
 Usage:
-  oculi init [--agent <name>]
+  oculi install [--agent <name>]
 
 Options:
   --agent <name>   Wire only this agent (claude-code, cursor). When omitted,
                    auto-detects installed agents on PATH and wires each.
 
-Writes .oculi/policy.yaml (preserved if it already exists) and merges hooks
-into the detected agent's settings file (./.claude/settings.json or
-./.cursor/hooks.json). Idempotent — safe to re-run. Existing user-authored
-hooks are preserved.
+Sets up Oculi at the user level so every Claude Code / Cursor session on this
+machine — in any directory — is intercepted, evaluated against policy, and
+appended to ~/.oculi/telemetry.jsonl.
+
+Writes:
+  ~/.oculi/policy.yaml          (preserved if it already exists)
+  ~/.claude/settings.json       merged with PreToolUse / PostToolUse / Stop hooks
+  ~/.cursor/hooks.json          merged with hook entries (if Cursor is installed)
+
+Idempotent — safe to re-run. Existing user-authored hooks are preserved.
+
+After install, run \`oculi tail\` to live-stream events or \`oculi serve\` to
+open the dashboard at http://127.0.0.1:3000/admin.
 
 Examples:
-  oculi init                       # auto-detect, wire all installed agents
-  oculi init --agent claude-code   # only wire Claude Code
+  oculi install                       # auto-detect, wire all installed agents
+  oculi install --agent claude-code   # only wire Claude Code
+
+Note: \`oculi init\` is a legacy alias for this command.
 `;
-const UNINSTALL_HELP = `oculi uninstall — remove Oculi state from this project
+const UNINSTALL_HELP = `oculi uninstall — remove user-level Oculi hooks
 
 Usage:
   oculi uninstall [--agent <name>]
@@ -92,11 +106,14 @@ Options:
   --agent <name>   Remove only this agent's hooks (claude-code, cursor). When
                    omitted, removes hooks for both agents.
 
-Removes only the entries Oculi added; other hooks are preserved. Also
-removes .oculi/policy.yaml when no agent has Oculi hooks remaining.
+Removes only the entries Oculi added from ~/.claude/settings.json and
+~/.cursor/hooks.json; other hooks are preserved. Also removes
+~/.oculi/policy.yaml when no agent has Oculi hooks remaining.
+
+(Telemetry files in ~/.oculi/ are left in place.)
 
 Examples:
-  oculi uninstall                  # remove all Oculi state from this project
+  oculi uninstall                  # remove all Oculi hooks
   oculi uninstall --agent cursor   # remove only Cursor's hooks
 `;
 const EMIT_HELP = `oculi emit — process a hook event from stdin
@@ -378,9 +395,9 @@ function parseAgentFlag(argv) {
     }
     return v;
 }
-function runInitCommand(argv) {
+function runInstallCommand(argv) {
     if (hasHelpFlag(argv)) {
-        process.stdout.write(INIT_HELP);
+        process.stdout.write(INSTALL_HELP);
         process.exit(0);
     }
     const agent = parseAgentFlag(argv);
@@ -524,8 +541,8 @@ async function main() {
     else if (subcmd === 'uninstall') {
         runUninstallCommand(rest);
     }
-    else if (subcmd === 'init') {
-        runInitCommand(rest);
+    else if (subcmd === 'install' || subcmd === 'init') {
+        runInstallCommand(rest);
     }
     else if (subcmd === 'tail') {
         runTailCommand(rest);
