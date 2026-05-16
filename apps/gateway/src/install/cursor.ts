@@ -3,9 +3,8 @@ import * as path from 'path';
 import * as os from 'os';
 
 export interface InstallOpts {
-  global: boolean;
-  dryRun: boolean;
-  cwd?: string;
+  /** Override the home directory (tests only). Production callers should omit this. */
+  home?: string;
 }
 
 export interface InstallResult {
@@ -26,10 +25,7 @@ const OCULI_EVENTS = [
 const OCULI_MARKER = 'oculi emit cursor';
 
 function resolveConfigPath(opts: InstallOpts): string {
-  const base = opts.global
-    ? os.homedir()
-    : (opts.cwd ?? process.cwd());
-  return path.join(base, '.cursor', 'hooks.json');
+  return path.join(opts.home ?? os.homedir(), '.cursor', 'hooks.json');
 }
 
 function readConfig(filePath: string): { version: number; hooks: Record<string, { command: string }[]> } {
@@ -44,7 +40,7 @@ function readConfig(filePath: string): { version: number; hooks: Record<string, 
   };
 }
 
-export function installCursor(opts: InstallOpts): InstallResult {
+export function installCursor(opts: InstallOpts = {}): InstallResult {
   const configPath = resolveConfigPath(opts);
   const config = readConfig(configPath);
   const added: string[] = [];
@@ -58,7 +54,7 @@ export function installCursor(opts: InstallOpts): InstallResult {
     }
   }
 
-  if (!opts.dryRun && added.length > 0) {
+  if (added.length > 0) {
     fs.mkdirSync(path.dirname(configPath), { recursive: true });
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
   }
@@ -66,7 +62,7 @@ export function installCursor(opts: InstallOpts): InstallResult {
   return { path: configPath, added, removed: [] };
 }
 
-export function uninstallCursor(opts: InstallOpts): InstallResult {
+export function uninstallCursor(opts: InstallOpts = {}): InstallResult {
   const configPath = resolveConfigPath(opts);
   const config = readConfig(configPath);
   const removed: string[] = [];
@@ -84,9 +80,8 @@ export function uninstallCursor(opts: InstallOpts): InstallResult {
     }
   }
 
-  if (!opts.dryRun && removed.length > 0) {
+  if (removed.length > 0) {
     if (Object.keys(config.hooks).length === 0) {
-      // Leave the file with an empty hooks object rather than deleting it
       fs.writeFileSync(configPath, JSON.stringify({ version: config.version, hooks: {} }, null, 2) + '\n', 'utf8');
     } else {
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
@@ -94,4 +89,14 @@ export function uninstallCursor(opts: InstallOpts): InstallResult {
   }
 
   return { path: configPath, added: [], removed };
+}
+
+/** Does ~/.cursor/hooks.json still have any oculi-marked hook? */
+export function hasOculiHooks(home?: string): boolean {
+  const configPath = resolveConfigPath({ home });
+  const config = readConfig(configPath);
+  for (const entries of Object.values(config.hooks)) {
+    if (entries.some((e) => e.command.includes(OCULI_MARKER))) return true;
+  }
+  return false;
 }

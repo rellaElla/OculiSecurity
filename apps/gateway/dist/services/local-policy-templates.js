@@ -1,43 +1,14 @@
 "use strict";
 /**
- * Starter policy templates for `oculi init`.
+ * Starter policy template for `oculi init`.
  *
- * Each template is a raw YAML string (not an object) so we can include
- * comments that explain the format to the user.
+ * Stored as a raw YAML string (not an object) so we can include comments
+ * that explain the format to the user.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.templates = exports.TEMPLATE_NAMES = void 0;
-exports.TEMPLATE_NAMES = ['minimal', 'standard'];
+exports.TEMPLATE_NAMES = ['standard'];
 exports.templates = {
-    // ── Minimal: log-only, no blocking ──────────────────────────────────────────
-    minimal: `# Oculi local policy — minimal (log-only)
-#
-# This policy file does not block anything. It exists so Oculi can
-# forward all hook events to the gateway for logging and auditing.
-#
-# Rule format:
-#   - id: "unique-id"
-#     match:
-#       tool: shell | file_read | file_edit | mcp_call  # exact match
-#       command_pattern: "regex"   # tested against shell commands
-#       file_pattern: "regex"      # tested against file paths
-#       mcp_server: "server-name"  # exact match on MCP server
-#     action: deny | warn | allow
-#
-# Precedence when multiple rules match: deny > warn > allow
-#
-# Uncomment the example below to get started:
-#
-# rules:
-#   - id: "warn-destructive-shell"
-#     match:
-#       tool: shell
-#       command_pattern: "rm\\\\s+-rf"
-#     action: warn
-
-rules: []
-`,
-    // ── Standard: sensible defaults ─────────────────────────────────────────────
     standard: `# Oculi local policy — standard (sensible defaults)
 #
 # Blocks dangerous shell commands and path traversal.

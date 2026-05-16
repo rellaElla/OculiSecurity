@@ -1,6 +1,0 @@
-{
-  "comment": "Static data for OPA policy. Extend with per-org overrides, custom allowlists, etc.",
-  "version": "1.0.0",
-  "custom_allowlists": {},
-  "blocked_actors": []
-}

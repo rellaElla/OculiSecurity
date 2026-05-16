@@ -292,7 +292,7 @@ describe('install + uninstall for both targets', () => {
 
   it('installs and uninstalls Claude Code hooks', () => {
     const dir = mktemp(); tmps.push(dir);
-    const opts = { global: false, dryRun: false, cwd: dir };
+    const opts = { home: dir };
 
     const installResult = installClaudeCode(opts);
     expect(installResult.added).toEqual(['PreToolUse', 'PostToolUse', 'Stop']);
@@ -318,7 +318,7 @@ describe('install + uninstall for both targets', () => {
 
   it('installs and uninstalls Cursor hooks', () => {
     const dir = mktemp(); tmps.push(dir);
-    const opts = { global: false, dryRun: false, cwd: dir };
+    const opts = { home: dir };
 
     const installResult = installCursor(opts);
     expect(installResult.added).toEqual([

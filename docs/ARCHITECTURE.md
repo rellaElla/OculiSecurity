@@ -1,150 +1,138 @@
-# MCP Security Gateway — Architecture
+# Oculi — Architecture
 
 ## Overview
 
-The MCP Security Gateway is a **policy-enforcing reverse proxy** that sits between agent clients and upstream MCP (Model Context Protocol) servers. Every tool call must pass authentication, policy evaluation, and rate limiting before being forwarded.
+Oculi is an IDE-layer security control for AI coding agents. The agent (Claude Code, Cursor, Windsurf) invokes Oculi as a hook on every tool use. Oculi normalizes the event, evaluates it against local policy, logs telemetry to disk, and tells the IDE whether to allow, warn, or block the action — all on the user's machine, with no network round-trip required.
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                         Agent Client                               │
-│  (OpenClaw / curl / Admin UI / any MCP client)                     │
-└──────────────────────────────┬─────────────────────────────────────┘
-                               │  POST /v1/call
-                               │  Authorization: Bearer <JWT>
+┌──────────────────────────────────────────────────────────────────────┐
+│                     IDE (Claude Code / Cursor)                       │
+│                                                                      │
+│   Agent decides to call a tool (Bash, Edit, Read, MCP call, …)       │
+│                              │                                       │
+│                              ▼                                       │
+│                    Hook fires → `oculi emit`                         │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │  stdin: raw hook JSON
                                ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                    MCP SECURITY GATEWAY (port 3000)                │
-│                                                                    │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────┐   │
-│  │  JWT Auth    │──▶│  Rate Limit  │──▶│  OPA Policy Engine   │   │
-│  │  Middleware  │   │  (in-memory  │   │  (rego / fallback)   │   │
-│  └──────────────┘   │  token bucket│   └──────────┬───────────┘   │
-│                     └──────────────┘              │ decision       │
-│                                                   ▼                │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │                   Call Router                               │  │
-│  │   allow → sanitize args → proxy to upstream                 │  │
-│  │   deny  → return 403 + audit log                           │  │
-│  └──────────────────────────┬────────────────────────────────┘   │
-│                              │                                     │
-│  ┌───────────────────────────▼─────────────────────────────────┐  │
-│  │                   Audit Logger (SQLite)                     │  │
-│  │   timestamp, actor, tool, args_hash, decision, latency_ms  │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-└──────────────────┬─────────────────────────────────────────────────┘
-                   │  forward (if allowed)
-         ┌─────────┴──────────┐
-         ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐
-│  demo-fs-server │  │ demo-http-server│
-│  (port 3001)    │  │  (port 3002)    │
-│                 │  │                 │
-│  readFile       │  │  fetchUrl       │
-│  listDir        │  │  postUrl        │
-│  writeFile      │  │                 │
-└─────────────────┘  └─────────────────┘
-         │
-         ▼ (separate container)
-┌─────────────────┐
-│   OPA Server    │
-│   (port 8181)   │
-│  gateway.rego   │
-└─────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                        oculi emit (CLI)                              │
+│                                                                      │
+│  ┌────────────────┐  ┌───────────────────┐  ┌─────────────────────┐  │
+│  │  Adapter       │─▶│  Policy Engine    │─▶│  Telemetry Log      │  │
+│  │  detect +      │  │  .oculi/          │  │  .oculi/            │  │
+│  │  normalize     │  │   policy.yaml     │  │   telemetry.jsonl   │  │
+│  └────────────────┘  └─────────┬─────────┘  └─────────────────────┘  │
+│                                │                                     │
+│                                ▼                                     │
+│                  deny → exit 2  (IDE blocks the action)              │
+│                  warn → exit 0 + warning printed                     │
+│                  allow → exit 0                                      │
+│                                │                                     │
+│                                ▼ (optional)                          │
+│              POST to local gateway for dashboard                     │
+└──────────────────────────────┬───────────────────────────────────────┘
+                               │
+                               ▼ (optional)
+┌──────────────────────────────────────────────────────────────────────┐
+│              oculi serve  —  Local Gateway + Dashboard               │
+│                          (127.0.0.1:3000)                            │
+│                                                                      │
+│   Receives events, persists to SQLite, serves the admin UI at        │
+│   /admin/. Zero-config for local dev; JWT auth available for         │
+│   non-localhost binds.                                               │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Components
 
-### 1. Gateway (`apps/gateway`)
-- **Runtime**: Node 20+ / TypeScript
-- **Framework**: Fastify (fast, schema-validated, plugin-friendly)
-- **Entrypoint**: `src/index.ts` → `src/server.ts`
+### CLI — `apps/gateway/src/cli.ts`
 
-#### Key Modules
-| Module | Purpose |
+The `oculi` binary is the single entry point. Subcommands:
+
+| Subcommand | Purpose |
 |---|---|
-| `middleware/auth.ts` | Verifies JWT, extracts actor/orgId/roles, 401 on failure |
-| `services/ratelimit.ts` | Token-bucket rate limiter keyed on `actor:tool` |
-| `services/policy.ts` | Calls OPA REST API; falls back to built-in engine |
-| `services/audit.ts` | Appends to SQLite `audit_logs` table |
-| `services/upstream.ts` | Looks up upstream by id, forwards call via HTTP |
-| `services/sanitizer.ts` | Applies redactions/transforms to upstream response |
-| `routes/call.ts` | `POST /v1/call` — main call mediation handler |
-| `routes/health.ts` | `GET /health` — liveness probe |
-| `routes/admin.ts` | `GET /admin/logs` — recent audit log |
+| `oculi init [--agent <name>]` | Write `.oculi/policy.yaml` and wire hooks for detected agents |
+| `oculi uninstall [--agent <name>]` | Remove Oculi hooks (and policy when none remain) |
+| `oculi serve [options]` | Start the local gateway + dashboard |
+| `oculi emit [adapter]` | Hook handler — read stdin, evaluate policy (called by IDEs) |
+| `oculi tail [--filter X]` | Live-stream the telemetry log |
+| `oculi report [--json] [--hours N]` | Summarize recent events |
 
-### 2. Demo Upstream: Filesystem (`apps/demo-upstream-fs`)
-Accepts `POST /v1/call` with `{ tool, args }`. Implements:
-- `readFile({ path })` — reads from `./demo-data/` sandbox
-- `listDir({ path })` — lists sandbox directory
-- `writeFile({ path, content })` — writes to `./demo-data/` sandbox
+### Agent detection — `src/install/detect.ts`
 
-Path traversal is blocked at the upstream too (defence-in-depth).
+Walks `process.env.PATH` and checks `fs.existsSync` for each agent's binary (`claude`, `cursor`). Used by `oculi init` to pick which agents to wire. No npm dependency; works on POSIX and Windows (`.cmd` / `.exe` / `.bat` fallbacks).
 
-### 3. Demo Upstream: HTTP Fetch (`apps/demo-upstream-http`)
-- `fetchUrl({ url })` — HTTP GET to external URL
-- `postUrl({ url, body })` — HTTP POST to external URL
+### Installers — `src/install/{claude-code,cursor}.ts`
 
-### 4. OPA (`policies/`)
-- `gateway.rego` — main policy: allowlist, dangerous-args, role-restriction, redactions
-- `data.json` — static data (custom per-org overrides possible)
-- OPA runs as a sidecar container on port 8181
+Each installer owns one agent's hook config:
 
-### 5. SQLite Audit Store
-Schema (table `audit_logs`):
-```
-id | requestId | timestamp | actor | orgId | upstreamId | tool
-   | argsHash  | argsJson? | decision | reason | latencyMs
-   | outcome   | responseHash | ip | sessionId
-```
-`STORE_FULL_ARGS=true` also stores raw JSON (off by default to protect sensitive data).
+- **Claude Code** → `.claude/settings.json` — events: `PreToolUse`, `PostToolUse`, `Stop`.
+- **Cursor** → `.cursor/hooks.json` — events: `beforeShellExecution`, `afterFileEdit`, `beforeReadFile`, `beforeMCPExecution`, `stop`.
 
-## Request Lifecycle
+Installers identify their own entries by an `oculi emit <agent>` marker substring. Merging is careful: existing user-authored hook entries are preserved on install, and only Oculi-marked entries are removed on uninstall. The orchestrator never writes the JSON files directly — it always goes through the per-agent installers.
 
-```
-1. Client sends POST /v1/call with Bearer JWT
-2. auth middleware:
-     - verify JWT signature & expiry → 401 if invalid
-     - extract { actor, orgId, roles, sub }
-3. rate limiter:
-     - check token bucket for actor:tool
-     - 429 if exhausted
-4. policy engine:
-     - build PolicyInput (actor, orgId, roles, upstreamId, tool, args, time, ip, sessionId)
-     - call OPA POST /v1/data/gateway/authz  (or fallback)
-     - receive { allow, reason, redactions, transforms, maxArgsSize }
-5. if deny:
-     - audit log (decision=deny, outcome=denied)
-     - return 403 { requestId, decision, error }
-6. if allow:
-     - validate args size <= maxArgsSize
-     - look up upstream config by upstreamId
-     - forward POST to upstream.baseUrl/v1/call
-     - receive result or upstream error
-     - sanitize response (apply redactions, transforms)
-     - audit log (decision=allow, outcome=success|error)
-     - return 200 { requestId, decision, upstream, result }
+### Init / Uninstall orchestrators — `src/commands/{init,uninstall}.ts`
+
+`runInit` composes: detect → write policy → install hooks for each detected agent. `runUninstall` composes: uninstall hooks → if no agent has Oculi markers on disk, delete `.oculi/policy.yaml`.
+
+### Adapters — `src/routes/adapters/{claude-code,cursor,windsurf}.ts`
+
+Each adapter implements:
+
+```typescript
+interface HookAdapter {
+  detect(body: Record<string, unknown>): boolean;
+  normalize(body: Record<string, unknown>): OculiEvent;
+  formatAllow(): string;
+  formatDeny(reason: string): string;
+  denyStatusCode(): number;
+}
 ```
 
-## Configuration
+`normalize()` produces a standard `OculiEvent` with `tool` ∈ `{ shell, file_read, file_edit, mcp_call, session_stop }` and the appropriate `shell_command` / `file_path` / `mcp_server` field populated. This lets a single policy work across IDEs without translation.
 
-All config via environment variables + `config/upstreams.yaml`.
+### Policy engine — `src/services/local-policy.ts`
 
-Key env vars:
-```
-PORT=3000
-JWT_SECRET=<min 32 chars>
-OPA_URL=http://opa:8181
-OPA_ENABLED=true
-DB_PATH=./data/audit.db
-STORE_FULL_ARGS=false
-RATE_LIMIT_CAPACITY=10
-RATE_LIMIT_REFILL=2
-LOG_LEVEL=info
-```
+Reads `.oculi/policy.yaml` (walking up from cwd to find it). Each rule has a `match` block (AND-ed across fields) and an `action` of `deny`, `warn`, or `allow`. Precedence when multiple rules match: **deny > warn > allow**. Only `pre`-phase events are evaluated for blocking; post-phase events are logged but never block.
 
-## Extension Points
+### Telemetry — `src/services/telemetry-log.ts`
 
-- **New upstream**: add entry to `config/upstreams.yaml`
-- **New policy rule**: edit `policies/gateway.rego` and reload OPA
-- **New MCP transport**: replace `services/upstream.ts` HTTP call with WebSocket/stdio adapter
-- **Database backend**: swap `audit.ts` implementation (PostgreSQL, etc.)
+Appends one JSON line per event to `.oculi/telemetry.jsonl`, rotated at 10 MB (5 rotations kept). `oculi tail` and `oculi report` read this file directly.
+
+### Local gateway — `src/commands/serve.ts` + `src/server.ts`
+
+`oculi serve` starts a local Fastify server at `127.0.0.1:3000` (configurable) with the admin dashboard at `/admin/`. Events forwarded by `oculi emit` are persisted to SQLite for the dashboard.
+
+Zero-config defaults (localhost-only):
+- No auth, no rate limiting, no upstreams.
+- Telemetry persisted in `~/.oculi/` by default; configurable with `--data-dir`.
+
+Non-localhost binds (`--bind 0.0.0.0`) require `--auth <secret>` (or `OCULI_GATEWAY_TOKEN` env var) — the server refuses to start otherwise.
+
+## Event flow
+
+1. Agent in the IDE decides to call a tool.
+2. IDE fires the configured hook command: `oculi emit <agent>` with the event payload on stdin.
+3. `oculi emit` reads stdin, routes via the adapter registry, normalizes to `OculiEvent`.
+4. Policy engine evaluates the event against `.oculi/policy.yaml`.
+5. Telemetry log entry is appended.
+6. Event is optionally POSTed to `GATEWAY_URL` for the dashboard.
+7. CLI exits with `0` (allow/warn) or `2` (deny). The IDE reads the exit code and either proceeds or blocks the action.
+
+## Data on disk
+
+| Path | Owner | Purpose |
+|---|---|---|
+| `./.oculi/policy.yaml` | project | Rule set evaluated for every event |
+| `./.oculi/telemetry.jsonl` | project | Append-only event log (10 MB × 5 rotations) |
+| `./.claude/settings.json` | project | Claude Code's hook config — Oculi merges entries in |
+| `./.cursor/hooks.json` | project | Cursor's hook config — same |
+| `~/.oculi/oculi.db` | user | SQLite store the dashboard reads from |
+
+## Threat model
+
+- **Local-only by default.** No code leaves the user's machine unless they run `oculi serve` and forward events.
+- **Hook integrity.** Oculi assumes the agent honors its hook contract (exit code 2 blocks the action). A compromised IDE can ignore hooks; this control is a guardrail, not a sandbox.
+- **Policy file integrity.** `.oculi/policy.yaml` is a regular file on the user's filesystem. Treat it as you'd treat any other config — if the agent can write to it, the agent can disarm the policy. Keep policies in source control if that's a concern.
+- **Telemetry confidentiality.** `.oculi/telemetry.jsonl` may contain sensitive command/file contents. It's project-local by default. Add it to `.gitignore` if you don't want it committed.

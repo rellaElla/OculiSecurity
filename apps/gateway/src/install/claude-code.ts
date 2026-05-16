@@ -3,9 +3,8 @@ import * as path from 'path';
 import * as os from 'os';
 
 export interface InstallOpts {
-  global: boolean;
-  dryRun: boolean;
-  cwd?: string;
+  /** Override the home directory (tests only). Production callers should omit this. */
+  home?: string;
 }
 
 export interface InstallResult {
@@ -19,13 +18,11 @@ const OCULI_EVENTS = ['PreToolUse', 'PostToolUse', 'Stop'] as const;
 
 const OCULI_MARKER = 'oculi emit claude-code';
 
-/** Inner hook entry: `{ type, command }` */
 interface CcHookEntry {
   type: string;
   command: string;
 }
 
-/** Outer hook entry: `{ matcher, hooks[] }` */
 interface CcHookGroup {
   matcher: string;
   hooks: CcHookEntry[];
@@ -39,10 +36,7 @@ interface CcSettings {
 }
 
 function resolveConfigPath(opts: InstallOpts): string {
-  const base = opts.global
-    ? os.homedir()
-    : (opts.cwd ?? process.cwd());
-  return path.join(base, '.claude', 'settings.json');
+  return path.join(opts.home ?? os.homedir(), '.claude', 'settings.json');
 }
 
 function readSettings(filePath: string): CcSettings {
@@ -57,7 +51,7 @@ function groupHasOculi(group: CcHookGroup): boolean {
   return group.hooks.some((h) => h.command?.includes(OCULI_MARKER));
 }
 
-export function installClaudeCode(opts: InstallOpts): InstallResult {
+export function installClaudeCode(opts: InstallOpts = {}): InstallResult {
   const configPath = resolveConfigPath(opts);
   const settings = readSettings(configPath);
   const hooksMap: HooksMap = settings.hooks ?? {};
@@ -78,7 +72,7 @@ export function installClaudeCode(opts: InstallOpts): InstallResult {
     }
   }
 
-  if (!opts.dryRun && added.length > 0) {
+  if (added.length > 0) {
     fs.mkdirSync(path.dirname(configPath), { recursive: true });
     const updated: CcSettings = { ...settings, hooks: hooksMap };
     fs.writeFileSync(configPath, JSON.stringify(updated, null, 2) + '\n', 'utf8');
@@ -87,7 +81,7 @@ export function installClaudeCode(opts: InstallOpts): InstallResult {
   return { path: configPath, added, removed: [] };
 }
 
-export function uninstallClaudeCode(opts: InstallOpts): InstallResult {
+export function uninstallClaudeCode(opts: InstallOpts = {}): InstallResult {
   const configPath = resolveConfigPath(opts);
   const settings = readSettings(configPath);
   const hooksMap: HooksMap = settings.hooks ?? {};
@@ -106,10 +100,21 @@ export function uninstallClaudeCode(opts: InstallOpts): InstallResult {
     }
   }
 
-  if (!opts.dryRun && removed.length > 0) {
+  if (removed.length > 0) {
     const updated: CcSettings = { ...settings, hooks: hooksMap };
     fs.writeFileSync(configPath, JSON.stringify(updated, null, 2) + '\n', 'utf8');
   }
 
   return { path: configPath, added: [], removed };
+}
+
+/** Does ~/.claude/settings.json still have any oculi-marked hook? */
+export function hasOculiHooks(home?: string): boolean {
+  const configPath = resolveConfigPath({ home });
+  const settings = readSettings(configPath);
+  const hooksMap: HooksMap = settings.hooks ?? {};
+  for (const groups of Object.values(hooksMap)) {
+    if (groups.some(groupHasOculi)) return true;
+  }
+  return false;
 }

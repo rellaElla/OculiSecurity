@@ -1559,12 +1559,6 @@
           <span class="nav-label">Actors &amp; Roles</span>
         </a>
       </li>
-      <li>
-        <a href="/admin/integrations" data-page="integrations" data-tooltip="Integrations">
-          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1" fill="currentColor" stroke="none"/><line x1="14" y1="6" x2="20" y2="6"/><line x1="14" y1="18" x2="20" y2="18"/></svg>
-          <span class="nav-label">Integrations</span>
-        </a>
-      </li>
     </ul>
     <div class="sidebar-collapse-btn" onclick="toggleSidebar()" id="collapse-btn">
       <svg class="sidebar-collapse-icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
@@ -1908,60 +1902,6 @@
               <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <!-- ════════════ Integrations Page ════════════ -->
-      <div id="page-integrations" class="page">
-        <div class="integrations-page-header">
-          <h1>Integrations</h1>
-          <p>Manage upstream connections, identity providers, and infrastructure integrations</p>
-        </div>
-
-        <div class="integrations-section-title">AI Client Integrations</div>
-        <div class="ai-clients-grid" id="ai-clients-grid">
-          <div style="grid-column:1/-1;color:var(--text-muted);padding:24px 0;">Loading…</div>
-        </div>
-
-        <div class="integrations-section-title">Upstream Servers</div>
-        <div class="integrations-grid" id="integrations-grid">
-          <div style="grid-column:1/-1;color:var(--text-muted);padding:24px 0;">Loading…</div>
-        </div>
-
-        <div class="integrations-section-title">Identity &amp; SSO</div>
-        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:32px;">
-          <div class="integration-placeholder-card">
-            <div>
-              <div class="integration-placeholder-lbl">SAML / SSO Provider</div>
-              <div class="integration-placeholder-sub">Connect an identity provider for single sign-on</div>
-            </div>
-            <button class="btn-configure-integration">Configure</button>
-          </div>
-          <div class="integration-placeholder-card">
-            <div>
-              <div class="integration-placeholder-lbl">OAuth 2.0 / OIDC</div>
-              <div class="integration-placeholder-sub">Enable OAuth flows for agent authentication</div>
-            </div>
-            <button class="btn-configure-integration">Configure</button>
-          </div>
-        </div>
-
-        <div class="integrations-section-title">Infrastructure</div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="integration-placeholder-card">
-            <div>
-              <div class="integration-placeholder-lbl">Envoy Proxy</div>
-              <div class="integration-placeholder-sub">Route traffic through Envoy for advanced load balancing and mTLS</div>
-            </div>
-            <button class="btn-configure-integration">Configure</button>
-          </div>
-          <div class="integration-placeholder-card">
-            <div>
-              <div class="integration-placeholder-lbl">Prometheus / Metrics Export</div>
-              <div class="integration-placeholder-sub">Export gateway metrics to your observability stack</div>
-            </div>
-            <button class="btn-configure-integration">Configure</button>
-          </div>
         </div>
       </div>
 

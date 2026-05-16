@@ -36,18 +36,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.runInit = runInit;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const os = __importStar(require("os"));
 const local_policy_templates_1 = require("./services/local-policy-templates");
-function runInit(templateName, opts = {}) {
-    if (!local_policy_templates_1.TEMPLATE_NAMES.includes(templateName)) {
-        throw new Error(`Unknown template '${templateName}'. Choose one of: ${local_policy_templates_1.TEMPLATE_NAMES.join(', ')}`);
-    }
-    const template = templateName;
-    const base = opts.cwd ?? process.cwd();
+function runInit(opts = {}) {
+    const base = opts.home ?? os.homedir();
     const policyPath = path.join(base, '.oculi', 'policy.yaml');
     if (fs.existsSync(policyPath)) {
-        return { path: policyPath, created: false, template };
+        return { path: policyPath, created: false };
     }
     fs.mkdirSync(path.dirname(policyPath), { recursive: true });
-    fs.writeFileSync(policyPath, local_policy_templates_1.templates[template], 'utf8');
-    return { path: policyPath, created: true, template };
+    fs.writeFileSync(policyPath, local_policy_templates_1.templates.standard, 'utf8');
+    return { path: policyPath, created: true };
 }

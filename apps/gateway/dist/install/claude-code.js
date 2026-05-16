@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.installClaudeCode = installClaudeCode;
 exports.uninstallClaudeCode = uninstallClaudeCode;
+exports.hasOculiHooks = hasOculiHooks;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const os = __importStar(require("os"));
@@ -42,10 +43,7 @@ const os = __importStar(require("os"));
 const OCULI_EVENTS = ['PreToolUse', 'PostToolUse', 'Stop'];
 const OCULI_MARKER = 'oculi emit claude-code';
 function resolveConfigPath(opts) {
-    const base = opts.global
-        ? os.homedir()
-        : (opts.cwd ?? process.cwd());
-    return path.join(base, '.claude', 'settings.json');
+    return path.join(opts.home ?? os.homedir(), '.claude', 'settings.json');
 }
 function readSettings(filePath) {
     if (!fs.existsSync(filePath)) {
@@ -57,7 +55,7 @@ function readSettings(filePath) {
 function groupHasOculi(group) {
     return group.hooks.some((h) => h.command?.includes(OCULI_MARKER));
 }
-function installClaudeCode(opts) {
+function installClaudeCode(opts = {}) {
     const configPath = resolveConfigPath(opts);
     const settings = readSettings(configPath);
     const hooksMap = settings.hooks ?? {};
@@ -76,14 +74,14 @@ function installClaudeCode(opts) {
             added.push(event);
         }
     }
-    if (!opts.dryRun && added.length > 0) {
+    if (added.length > 0) {
         fs.mkdirSync(path.dirname(configPath), { recursive: true });
         const updated = { ...settings, hooks: hooksMap };
         fs.writeFileSync(configPath, JSON.stringify(updated, null, 2) + '\n', 'utf8');
     }
     return { path: configPath, added, removed: [] };
 }
-function uninstallClaudeCode(opts) {
+function uninstallClaudeCode(opts = {}) {
     const configPath = resolveConfigPath(opts);
     const settings = readSettings(configPath);
     const hooksMap = settings.hooks ?? {};
@@ -101,9 +99,20 @@ function uninstallClaudeCode(opts) {
             }
         }
     }
-    if (!opts.dryRun && removed.length > 0) {
+    if (removed.length > 0) {
         const updated = { ...settings, hooks: hooksMap };
         fs.writeFileSync(configPath, JSON.stringify(updated, null, 2) + '\n', 'utf8');
     }
     return { path: configPath, added: [], removed };
+}
+/** Does ~/.claude/settings.json still have any oculi-marked hook? */
+function hasOculiHooks(home) {
+    const configPath = resolveConfigPath({ home });
+    const settings = readSettings(configPath);
+    const hooksMap = settings.hooks ?? {};
+    for (const groups of Object.values(hooksMap)) {
+        if (groups.some(groupHasOculi))
+            return true;
+    }
+    return false;
 }

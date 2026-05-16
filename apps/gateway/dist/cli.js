@@ -4,14 +4,12 @@
  * Oculi CLI — hook router + installer.
  *
  * Subcommands:
- *   oculi emit [adapter]              — read stdin, route to gateway (default behaviour)
- *   oculi install <cursor|claude-code> [--global] [--dry-run]
- *   oculi uninstall <cursor|claude-code> [--global] [--dry-run]
- *   oculi init <minimal|standard|strict> — create .oculi/policy.yaml from a template
- *   oculi tail [--filter <action>] [--no-color] — live-stream telemetry log
- *   oculi report [--json] [--hours N]  — summarize recent telemetry
- *
- * Backwards-compat: `oculi claude-code` (no subcommand) still works as emit.
+ *   oculi emit [adapter]                  — read stdin, route to gateway (default behaviour)
+ *   oculi init [--agent <name>]           — write .oculi/policy.yaml + wire agent hooks
+ *   oculi uninstall [--agent <name>]      — remove Oculi hooks (and policy when no agent remains)
+ *   oculi serve [options]                 — start the gateway + dashboard
+ *   oculi tail [--filter <action>]        — live-stream telemetry log
+ *   oculi report [--json] [--hours N]     — summarize recent telemetry
  *
  * Environment variables (emit only):
  *   GATEWAY_URL    Base URL of the Oculi gateway  (default: http://localhost:3000)
@@ -21,12 +19,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = require("fs");
 const path_1 = require("path");
 const router_1 = require("./routes/adapters/router");
-const cursor_1 = require("./install/cursor");
-const claude_code_1 = require("./install/claude-code");
 const local_policy_1 = require("./services/local-policy");
 const telemetry_log_1 = require("./services/telemetry-log");
-const init_1 = require("./init");
-const local_policy_templates_1 = require("./services/local-policy-templates");
+const detect_1 = require("./install/detect");
+const init_1 = require("./commands/init");
+const uninstall_1 = require("./commands/uninstall");
 const tail_1 = require("./commands/tail");
 const report_1 = require("./commands/report");
 const serve_1 = require("./commands/serve");
@@ -52,13 +49,12 @@ Usage:
   oculi <command> [options]
 
 Commands:
-  serve [options]          Start the gateway + dashboard (zero-config localhost)
-  init <template>          Create .oculi/policy.yaml (templates: minimal, standard)
-  install <target>         Install hooks for an IDE (targets: claude-code, cursor)
-  uninstall <target>       Remove hooks for an IDE
-  emit [adapter]           Process a hook event from stdin (called by IDEs)
-  tail [--filter <kind>]   Live-stream telemetry log
-  report [--json] [--hours N]   Summarize recent events
+  serve [options]            Start the gateway + dashboard (zero-config localhost)
+  init [--agent <name>]      Write .oculi/policy.yaml and wire hooks for detected agents
+  uninstall [--agent <name>] Remove Oculi hooks (and policy when nothing remains wired)
+  emit [adapter]             Process a hook event from stdin (called by IDEs)
+  tail [--filter <kind>]     Live-stream telemetry log
+  report [--json] [--hours N] Summarize recent events
 
 Run \`oculi <command> --help\` for command-specific help.
 
@@ -69,57 +65,39 @@ Environment variables:
 
 Documentation: https://docs.oculisecurity.com
 `;
-const INIT_HELP = `oculi init — create a local policy file
+const INIT_HELP = `oculi init — write policy and wire agent hooks
 
 Usage:
-  oculi init <template>
-
-Templates:
-  minimal     Empty rule set; nothing blocked
-  standard    Common safety rules (deny rm -rf, warn on .env/MCP access)
-
-Writes .oculi/policy.yaml in the current directory. If the file already
-exists, prints a notice and exits 0 without overwriting.
-
-Example:
-  oculi init standard
-`;
-const INSTALL_HELP = `oculi install — install hooks into an IDE
-
-Usage:
-  oculi install <target> [--global] [--dry-run]
-
-Targets:
-  claude-code    Merge hooks into .claude/settings.json
-  cursor         Merge hooks into .cursor/hooks.json
+  oculi init [--agent <name>]
 
 Options:
-  --global       Install into ~/.<target>/ instead of project-local
-  --dry-run      Print what would change without writing files
+  --agent <name>   Wire only this agent (claude-code, cursor). When omitted,
+                   auto-detects installed agents on PATH and wires each.
 
-Idempotent: running twice is a no-op the second time. Existing user-authored
+Writes .oculi/policy.yaml (preserved if it already exists) and merges hooks
+into the detected agent's settings file (./.claude/settings.json or
+./.cursor/hooks.json). Idempotent — safe to re-run. Existing user-authored
 hooks are preserved.
 
-Example:
-  oculi install claude-code
+Examples:
+  oculi init                       # auto-detect, wire all installed agents
+  oculi init --agent claude-code   # only wire Claude Code
 `;
-const UNINSTALL_HELP = `oculi uninstall — remove hooks from an IDE
+const UNINSTALL_HELP = `oculi uninstall — remove Oculi state from this project
 
 Usage:
-  oculi uninstall <target> [--global] [--dry-run]
-
-Targets:
-  claude-code    Remove oculi hooks from .claude/settings.json
-  cursor         Remove oculi hooks from .cursor/hooks.json
+  oculi uninstall [--agent <name>]
 
 Options:
-  --global       Operate on ~/.<target>/ instead of project-local
-  --dry-run      Print what would change without writing files
+  --agent <name>   Remove only this agent's hooks (claude-code, cursor). When
+                   omitted, removes hooks for both agents.
 
-Removes only the entries oculi added; other hooks are preserved.
+Removes only the entries Oculi added; other hooks are preserved. Also
+removes .oculi/policy.yaml when no agent has Oculi hooks remaining.
 
-Example:
-  oculi uninstall claude-code
+Examples:
+  oculi uninstall                  # remove all Oculi state from this project
+  oculi uninstall --agent cursor   # remove only Cursor's hooks
 `;
 const EMIT_HELP = `oculi emit — process a hook event from stdin
 
@@ -388,85 +366,35 @@ function extractGatewayReason(body) {
     }
     return null;
 }
-// ── install / uninstall ───────────────────────────────────────────────────────
-const SUPPORTED_TARGETS = ['cursor', 'claude-code'];
-function parseInstallArgs(argv) {
-    const [target, ...flags] = argv;
-    if (!SUPPORTED_TARGETS.includes(target)) {
-        process.stderr.write(`oculi: unknown target '${target ?? ''}'. Supported: ${SUPPORTED_TARGETS.join(', ')}\n`);
+// ── init / uninstall ──────────────────────────────────────────────────────────
+function parseAgentFlag(argv) {
+    const i = argv.indexOf('--agent');
+    if (i === -1)
+        return undefined;
+    const v = argv[i + 1];
+    if (!v || !detect_1.AGENTS.includes(v)) {
+        process.stderr.write(`oculi: --agent expects one of: ${detect_1.AGENTS.join(', ')}\n`);
         process.exit(1);
     }
-    return {
-        target: target,
-        global: hasFlag(flags, '--global'),
-        dryRun: hasFlag(flags, '--dry-run'),
-    };
+    return v;
 }
-async function runInstall(argv) {
-    if (hasHelpFlag(argv)) {
-        process.stdout.write(INSTALL_HELP);
-        process.exit(0);
-    }
-    const { target, global: isGlobal, dryRun } = parseInstallArgs(argv);
-    const opts = { global: isGlobal, dryRun };
-    const result = target === 'cursor' ? (0, cursor_1.installCursor)(opts) : (0, claude_code_1.installClaudeCode)(opts);
-    const scope = isGlobal ? 'global' : 'project';
-    const prefix = dryRun ? '[dry-run] ' : '';
-    if (result.added.length === 0) {
-        process.stdout.write(`${prefix}oculi hooks already installed (${scope}): ${result.path}\n`);
-    }
-    else {
-        process.stdout.write(`${prefix}Installed oculi hooks (${scope}): ${result.path}\n`);
-        for (const event of result.added) {
-            process.stdout.write(`  + ${event}\n`);
-        }
-    }
-}
-async function runUninstall(argv) {
-    if (hasHelpFlag(argv)) {
-        process.stdout.write(UNINSTALL_HELP);
-        process.exit(0);
-    }
-    const { target, global: isGlobal, dryRun } = parseInstallArgs(argv);
-    const opts = { global: isGlobal, dryRun };
-    const result = target === 'cursor' ? (0, cursor_1.uninstallCursor)(opts) : (0, claude_code_1.uninstallClaudeCode)(opts);
-    const scope = isGlobal ? 'global' : 'project';
-    const prefix = dryRun ? '[dry-run] ' : '';
-    if (result.removed.length === 0) {
-        process.stdout.write(`${prefix}No oculi hooks found (${scope}): ${result.path}\n`);
-    }
-    else {
-        process.stdout.write(`${prefix}Removed oculi hooks (${scope}): ${result.path}\n`);
-        for (const event of result.removed) {
-            process.stdout.write(`  - ${event}\n`);
-        }
-    }
-}
-// ── init ─────────────────────────────────────────────────────────────────────
 function runInitCommand(argv) {
     if (hasHelpFlag(argv)) {
         process.stdout.write(INIT_HELP);
         process.exit(0);
     }
-    const templateName = argv[0];
-    if (!templateName) {
-        process.stderr.write(`oculi: usage: oculi init <${local_policy_templates_1.TEMPLATE_NAMES.join('|')}>\n`);
-        process.exit(1);
+    const agent = parseAgentFlag(argv);
+    const r = (0, init_1.runInit)({ agent });
+    if (r.exitCode !== 0)
+        process.exit(r.exitCode);
+}
+function runUninstallCommand(argv) {
+    if (hasHelpFlag(argv)) {
+        process.stdout.write(UNINSTALL_HELP);
+        process.exit(0);
     }
-    try {
-        const result = (0, init_1.runInit)(templateName);
-        if (!result.created) {
-            process.stdout.write(`oculi: policy file already exists: ${result.path}\n`);
-        }
-        else {
-            process.stdout.write(`Created ${result.path} (template: ${result.template})\n`);
-        }
-    }
-    catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        process.stderr.write(`oculi: ${msg}\n`);
-        process.exit(1);
-    }
+    const agent = parseAgentFlag(argv);
+    (0, uninstall_1.runUninstall)({ agent });
 }
 // ── tail ─────────────────────────────────────────────────────────────────────
 function runTailCommand(argv) {
@@ -593,11 +521,8 @@ async function main() {
     else if (subcmd === 'serve') {
         await runServeCommand(rest);
     }
-    else if (subcmd === 'install') {
-        await runInstall(rest);
-    }
     else if (subcmd === 'uninstall') {
-        await runUninstall(rest);
+        runUninstallCommand(rest);
     }
     else if (subcmd === 'init') {
         runInitCommand(rest);

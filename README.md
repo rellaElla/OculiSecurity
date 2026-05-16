@@ -1,6 +1,6 @@
 # Oculi Security
 
-Oculi is a security layer for AI coding agents. It intercepts hook events from IDEs like Cursor, Claude Code, and Windsurf, normalizes them into a standard schema (`OculiEvent`), evaluates them against local policy rules, logs everything to a local telemetry file, and optionally forwards to a central gateway for org-wide policy enforcement. Every event — shell commands, file reads/edits, MCP tool calls — goes through the same pipeline regardless of which IDE generated it.
+Oculi is a security layer for AI coding agents. It intercepts hook events from IDEs like Cursor and Claude Code, normalizes them into a standard schema (`OculiEvent`), evaluates them against local policy rules, and logs everything to a local telemetry file. Every event — shell commands, file reads/edits, MCP tool calls — goes through the same pipeline regardless of which IDE generated it.
 
 ## Architecture
 
@@ -8,44 +8,37 @@ Oculi is a security layer for AI coding agents. It intercepts hook events from I
 flowchart LR
     CC[Claude Code] -->|hook stdin| CLI[oculi emit]
     CU[Cursor] -->|hook stdin| CLI
-    WS[Windsurf] -->|hook stdin| CLI
 
     CLI --> AD[Adapter<br/>detect + normalize]
     AD --> SE[OculiEvent<br/>standard schema]
     SE --> PE[Policy Engine<br/>.oculi/policy.yaml]
     PE -->|deny exit 2| IDE[Block IDE action]
-    PE -->|allow/warn| GW[Gateway<br/>optional]
+    PE -->|allow/warn| GW[Local Gateway<br/>oculi serve]
     PE --> TL[Telemetry Log<br/>.oculi/telemetry.jsonl]
 
     TL --> TAIL[oculi tail]
     TL --> RPT[oculi report]
+    GW --> DASH[Dashboard<br/>127.0.0.1:3000/admin]
 ```
 
-## Quick Start — Cursor
+## Quick Start
 
 ```bash
 npm install -g oculi-security
 cd your-project
-oculi init standard
-oculi install cursor
+oculi init
 ```
 
-> **Not on npm yet?** See [Local Install](#local-install) below.
+`oculi init` auto-detects installed agents (Claude Code, Cursor) on your PATH and wires hooks for each. It also writes `.oculi/policy.yaml` with sensible defaults (blocks `rm -rf`, path traversal; warns on `.env` access and MCP calls).
 
-This creates `.oculi/policy.yaml` with sensible defaults (blocks `rm -rf`, path traversal; warns on `.env` access and MCP calls) and registers Oculi hooks in `.cursor/hooks.json` for all five Cursor hook events.
-
-## Quick Start — Claude Code
+Wire only one agent:
 
 ```bash
-npm install -g oculi-security
-cd your-project
-oculi init standard
-oculi install claude-code
+oculi init --agent claude-code
+oculi init --agent cursor
 ```
 
-> **Not on npm yet?** See [Local Install](#local-install) below.
-
-Registers hooks in `.claude/settings.json` for `PreToolUse`, `PostToolUse`, and `Stop` events.
+Idempotent — safe to re-run. Existing user-authored hooks are preserved.
 
 ## Viewing Telemetry
 
@@ -78,29 +71,17 @@ oculi report --hours 48   # look back further
 oculi report --json       # machine-readable
 ```
 
+### Dashboard
+
+```bash
+oculi serve               # start the local gateway + dashboard at 127.0.0.1:3000
 ```
-Oculi Report — last 24 hours (2026-03-04 14:32 → 2026-03-05 14:32)
 
-Events: 142 total (98 pre, 40 post, 4 complete)
-
-By tool:
-  shell          52  ████████████████
-  file_read      38  ████████████
-  file_edit      31  ██████████
-  mcp_call       17  █████
-
-By IDE:
-  claude-code    89 (63%)
-  cursor         53 (37%)
-
-Policy violations (2):
-  2026-03-05 14:32:05  deny  shell     rm -rf /       no-rm-rf
-  2026-03-05 13:15:22  warn  file_read .env.local     warn-env-access
-```
+Open `http://127.0.0.1:3000/admin` for a live view of events, decisions, and policy violations.
 
 ## Policy Configuration
 
-Policy rules live in `.oculi/policy.yaml`. Oculi walks up from the current directory to find the nearest one, falling back to `~/.oculi/policy.yaml`.
+Policy rules live in `.oculi/policy.yaml`. Oculi walks up from the current directory to find the nearest one.
 
 ### Rule format
 
@@ -117,17 +98,7 @@ rules:
 
 All `match` fields are AND-ed. When multiple rules match, precedence is **deny > warn > allow**. Policy is only evaluated on `pre` phase events.
 
-### Templates
-
-Generate a starter policy with `oculi init <template>`:
-
-| Template | Behavior |
-|----------|----------|
-| `minimal` | Empty rules — logs everything, blocks nothing |
-| `standard` | Blocks `rm -rf` and path traversal, warns on `.env` and MCP |
-| `strict` | Deny-all for shell/MCP, explicit allowlist for safe commands and file ops |
-
-### Standard template (recommended starting point)
+### Standard policy (what `oculi init` writes)
 
 ```yaml
 rules:
@@ -169,37 +140,31 @@ rules:
 | `1` | Error (bad input, unknown adapter) |
 | `2` | Denied by policy |
 
+## Removing Oculi
+
+```bash
+oculi uninstall                  # remove all Oculi state from this project
+oculi uninstall --agent cursor   # remove only Cursor's hooks
+```
+
+`oculi uninstall` removes the hook entries Oculi added to `.claude/settings.json` / `.cursor/hooks.json`, preserves your own hooks, and removes `.oculi/policy.yaml` when no agent has Oculi hooks remaining.
+
 ## CLI Reference
 
 ```
-oculi emit [adapter]                          # read stdin, evaluate policy, forward to gateway
-oculi install <cursor|claude-code> [--global] [--dry-run]
-oculi uninstall <cursor|claude-code> [--global] [--dry-run]
-oculi init <minimal|standard|strict>          # create .oculi/policy.yaml
-oculi tail [--filter <allow|warn|deny>] [--no-color]
-oculi report [--json] [--hours N]
+oculi init [--agent <name>]            # write policy + wire detected agent hooks
+oculi uninstall [--agent <name>]       # remove Oculi state from this project
+oculi serve [options]                  # start local gateway + dashboard
+oculi tail [--filter <action>]         # live-stream telemetry log
+oculi report [--json] [--hours N]      # summarize recent events
+oculi emit [adapter]                   # read stdin, evaluate policy (called by IDEs)
 ```
+
+Run `oculi <command> --help` for command-specific options.
 
 Environment variables (emit only):
 - `GATEWAY_URL` — Base URL of the Oculi gateway (default: `http://localhost:3000`)
 - `GATEWAY_TOKEN` — Bearer token for gateway auth (optional)
-
-## Gateway Server
-
-The gateway is an optional central component for org-wide policy enforcement, JWT auth, rate limiting, and audit logging.
-
-```bash
-# Local dev
-cd apps/gateway && npm run dev
-
-# Full stack with Docker (gateway + OPA + upstreams)
-docker compose up --build
-
-# Admin UI
-open http://localhost:3000/admin
-```
-
-See [Architecture](docs/ARCHITECTURE.md), [Threat Model](docs/THREAT_MODEL.md), [How-To Guide](docs/HOW_TO.md), and [OPA Policy Reference](policies/README.md) for gateway details.
 
 ## Adding Support for New IDEs
 
@@ -226,10 +191,11 @@ interface HookAdapter {
 
 To add a new IDE:
 
-1. Create `apps/gateway/src/routes/adapters/<ide-name>.ts` implementing the five functions above
-2. Register it in `apps/gateway/src/routes/adapters/router.ts` by adding to `ADAPTER_REGISTRY`
-3. Create `apps/gateway/src/install/<ide-name>.ts` with `install` and `uninstall` functions that manage the IDE's hook config file
-4. Add the target to `SUPPORTED_TARGETS` in `apps/gateway/src/cli.ts`
+1. Create `apps/gateway/src/routes/adapters/<ide-name>.ts` implementing the five functions above.
+2. Register it in `apps/gateway/src/routes/adapters/router.ts` by adding to `ADAPTER_REGISTRY`.
+3. Create `apps/gateway/src/install/<ide-name>.ts` with `installX` / `uninstallX` / `hasOculiHooks` functions.
+4. Add the agent name to `AGENTS` in `apps/gateway/src/install/detect.ts` and the binary name to `BINARIES`.
+5. Wire it into the orchestrators in `apps/gateway/src/commands/init.ts` and `apps/gateway/src/commands/uninstall.ts`.
 
 The key contract: `normalize()` must produce an `OculiEvent` where `tool` is one of the standard names (`shell`, `file_read`, `file_edit`, `mcp_call`, `session_stop`) and `shell_command`, `file_path`, `mcp_server` are populated for the relevant tool type. This ensures policy rules and telemetry work identically regardless of IDE.
 
@@ -239,8 +205,6 @@ Existing adapters: **Claude Code**, **Cursor**, **Windsurf** (all in `apps/gatew
 
 ### Local Install
 
-The `oculi` CLI isn't published to npm yet. To use it locally:
-
 ```bash
 cd apps/gateway
 npm install
@@ -248,13 +212,13 @@ npm run build
 npm link
 ```
 
-This compiles TypeScript to `dist/` and symlinks the `oculi` binary onto your PATH. After this, the Quick Start commands (`oculi init`, `oculi install`) will work.
+This compiles TypeScript to `dist/` and symlinks the `oculi` binary onto your PATH.
 
 ### Commands
 
 ```bash
 cd apps/gateway
-npm test              # 234 tests across 11 files
+npm test              # full unit + integration suite
 npm run dev           # gateway server with hot reload
 npm run build         # compile to dist/
 ```

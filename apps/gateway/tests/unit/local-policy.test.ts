@@ -363,38 +363,24 @@ describe('runInit', () => {
   const tmps: string[] = [];
   afterEach(() => { cleanup(tmps); tmps.length = 0; });
 
-  it('creates .oculi/policy.yaml from standard template', () => {
+  it('creates .oculi/policy.yaml from the standard template', () => {
     const dir = mktemp(); tmps.push(dir);
-    const result = runInit('standard', { cwd: dir });
+    const result = runInit({ home: dir });
     expect(result.created).toBe(true);
-    expect(result.template).toBe('standard');
     expect(fs.existsSync(result.path)).toBe(true);
 
     const content = fs.readFileSync(result.path, 'utf8');
     expect(content).toContain('no-rm-rf');
   });
 
-  it('creates .oculi/policy.yaml from minimal template', () => {
-    const dir = mktemp(); tmps.push(dir);
-    const result = runInit('minimal', { cwd: dir });
-    expect(result.created).toBe(true);
-    expect(result.template).toBe('minimal');
-  });
-
   it('refuses to overwrite existing file', () => {
     const dir = mktemp(); tmps.push(dir);
-    runInit('standard', { cwd: dir });
-    const result = runInit('standard', { cwd: dir });
+    runInit({ home: dir });
+    const result = runInit({ home: dir });
     expect(result.created).toBe(false);
 
-    // Content should still be the standard template (unchanged)
     const content = fs.readFileSync(result.path, 'utf8');
     expect(content).toContain('no-rm-rf');
-  });
-
-  it('throws on unknown template', () => {
-    const dir = mktemp(); tmps.push(dir);
-    expect(() => runInit('nonexistent', { cwd: dir })).toThrow(/Unknown template/);
   });
 });
 
