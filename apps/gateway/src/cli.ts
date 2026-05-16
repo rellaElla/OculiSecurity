@@ -172,6 +172,7 @@ Options:
   --auth SECRET        Enable JWT auth on protected endpoints (≥32 chars).
                        Also accepted via OCULI_GATEWAY_TOKEN env var.
   --opa-url URL        Enable OPA-based central policy at this URL.
+  --verbose            Enable verbose (debug-level) request logging.
 
 Zero-config defaults (no flags, localhost):
   No auth, no OPA, no rate limit, no upstreams.
@@ -536,6 +537,9 @@ function parseServeArgs(argv: string[]): ServeOpts {
         if (!next) throw new Error('--opa-url requires a value');
         opts.opaUrl = next;
         i++;
+        break;
+      case '--verbose':
+        opts.verbose = true;
         break;
       default:
         throw new Error(`unknown serve option: ${arg}`);

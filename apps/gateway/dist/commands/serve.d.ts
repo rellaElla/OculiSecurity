@@ -7,6 +7,7 @@ export interface ServeOpts {
     auth?: string;
     /** When undefined, OPA is disabled and the built-in fallback policy runs. */
     opaUrl?: string;
+    verbose?: boolean;
 }
 /**
  * Build an AppConfig from serve opts + sensible defaults.

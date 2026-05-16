@@ -13,6 +13,7 @@ export interface ServeOpts {
   auth?: string;
   /** When undefined, OPA is disabled and the built-in fallback policy runs. */
   opaUrl?: string;
+  verbose?: boolean;
 }
 
 const LOCALHOST = new Set(['127.0.0.1', 'localhost', '::1']);
@@ -38,7 +39,7 @@ export function buildServeConfig(opts: ServeOpts): AppConfig {
     upstreams: [],
     rateLimitCapacity: local ? 0 : 10,
     rateLimitRefillPerSecond: local ? 0 : 2,
-    logLevel: 'info',
+    logLevel: opts.verbose ? 'info' : 'warn',
   };
 }
 

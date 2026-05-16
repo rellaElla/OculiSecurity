@@ -51,6 +51,23 @@ describe('buildServeConfig — non-localhost bind', () => {
   });
 });
 
+describe('buildServeConfig — verbose flag', () => {
+  it('sets logLevel to info when verbose is true', () => {
+    const cfg = buildServeConfig(baseOpts({ verbose: true }));
+    expect(cfg.logLevel).toBe('info');
+  });
+
+  it('sets logLevel to warn when verbose is false', () => {
+    const cfg = buildServeConfig(baseOpts({ verbose: false }));
+    expect(cfg.logLevel).toBe('warn');
+  });
+
+  it('sets logLevel to warn when verbose is undefined', () => {
+    const cfg = buildServeConfig(baseOpts());
+    expect(cfg.logLevel).toBe('warn');
+  });
+});
+
 describe('validateServeOpts — auth required on non-localhost', () => {
   const origEnv = process.env.OCULI_GATEWAY_TOKEN;
   beforeEach(() => {

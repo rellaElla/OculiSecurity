@@ -63,7 +63,7 @@ function buildServeConfig(opts) {
         upstreams: [],
         rateLimitCapacity: local ? 0 : 10,
         rateLimitRefillPerSecond: local ? 0 : 2,
-        logLevel: 'info',
+        logLevel: opts.verbose ? 'info' : 'warn',
     };
 }
 /**
