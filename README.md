@@ -25,24 +25,31 @@ flowchart LR
 
 ```bash
 npm install -g oculi-security
-cd your-project
-oculi init
+oculi install
 ```
 
-`oculi init` auto-detects installed agents (Claude Code, Cursor) on your PATH and wires hooks for each. It also writes `.oculi/policy.yaml` with sensible defaults (blocks `rm -rf`, path traversal; warns on `.env` access and MCP calls).
+`oculi install` auto-detects installed agents (Claude Code, Cursor) on your PATH and wires hooks at the **user level** — meaning every session you run on this machine, in any directory, is intercepted. Specifically it:
+
+- writes `~/.oculi/policy.yaml` with sensible defaults (blocks `rm -rf`, path traversal; warns on `.env` access and MCP calls)
+- merges `PreToolUse` / `PostToolUse` / `Stop` hook entries into `~/.claude/settings.json`
+- merges hook entries into `~/.cursor/hooks.json` if Cursor is installed
+
+All Claude Code / Cursor sessions then append telemetry to `~/.oculi/telemetry.jsonl`. View it with `oculi tail`, `oculi report`, or `oculi serve` (dashboard at `http://127.0.0.1:3000/admin`).
 
 Wire only one agent:
 
 ```bash
-oculi init --agent claude-code
-oculi init --agent cursor
+oculi install --agent claude-code
+oculi install --agent cursor
 ```
 
 Idempotent — safe to re-run. Existing user-authored hooks are preserved.
 
+> `oculi init` remains as a legacy alias of `oculi install`.
+
 ## Viewing Telemetry
 
-Every intercepted event is logged to `.oculi/telemetry.jsonl` as a single JSON line (rotated at 10 MB, 5 rotations max).
+Every intercepted event is logged to `~/.oculi/telemetry.jsonl` as a single JSON line (rotated at 10 MB, 5 rotations max). If a project directory contains its own `.oculi/` folder, that one takes precedence — useful for per-project audit logs.
 
 ### Live stream
 
@@ -81,7 +88,7 @@ Open `http://127.0.0.1:3000/admin` for a live view of events, decisions, and pol
 
 ## Policy Configuration
 
-Policy rules live in `.oculi/policy.yaml`. Oculi walks up from the current directory to find the nearest one.
+Policy rules live in `~/.oculi/policy.yaml` (written by `oculi install`). For per-project overrides, drop a `.oculi/policy.yaml` into the project root — Oculi walks up from the current directory and uses the nearest one.
 
 ### Rule format
 
@@ -98,7 +105,7 @@ rules:
 
 All `match` fields are AND-ed. When multiple rules match, precedence is **deny > warn > allow**. Policy is only evaluated on `pre` phase events.
 
-### Standard policy (what `oculi init` writes)
+### Standard policy (what `oculi install` writes)
 
 ```yaml
 rules:
@@ -142,23 +149,35 @@ rules:
 
 ## Removing Oculi
 
+Run **both** commands, in this order:
+
 ```bash
-oculi uninstall                  # remove all Oculi state from this project
-oculi uninstall --agent cursor   # remove only Cursor's hooks
+oculi uninstall                          # 1. remove the hooks and policy
+npm uninstall -g @oculisecurity/cli      # 2. remove the binary
 ```
 
-`oculi uninstall` removes the hook entries Oculi added to `.claude/settings.json` / `.cursor/hooks.json`, preserves your own hooks, and removes `.oculi/policy.yaml` when no agent has Oculi hooks remaining.
+`oculi uninstall` removes the hook entries Oculi added to `~/.claude/settings.json` / `~/.cursor/hooks.json`, preserves your own hooks, and removes `~/.oculi/policy.yaml` when no agent has Oculi hooks remaining. Telemetry files in `~/.oculi/` are left in place.
+
+> **Why two commands?** `npm uninstall -g` only removes files inside the package directory. The hooks Oculi writes live in your home directory (`~/.claude/`, `~/.cursor/`), so npm has no idea they exist. If you skip `oculi uninstall` and only run `npm uninstall -g`, your IDEs will keep trying to invoke `oculi emit …` after the binary is gone — every tool call will surface a "command not found" error from the hook.
+
+Wire only one agent's removal:
+
+```bash
+oculi uninstall --agent cursor   # remove only Cursor's hooks
+```
 
 ## CLI Reference
 
 ```
-oculi init [--agent <name>]            # write policy + wire detected agent hooks
-oculi uninstall [--agent <name>]       # remove Oculi state from this project
+oculi install [--agent <name>]         # wire user-level hooks + write ~/.oculi/policy.yaml
+oculi uninstall [--agent <name>]       # remove user-level Oculi hooks
 oculi serve [options]                  # start local gateway + dashboard
 oculi tail [--filter <action>]         # live-stream telemetry log
 oculi report [--json] [--hours N]      # summarize recent events
 oculi emit [adapter]                   # read stdin, evaluate policy (called by IDEs)
 ```
+
+(`oculi init` is a legacy alias for `oculi install`.)
 
 Run `oculi <command> --help` for command-specific options.
 
